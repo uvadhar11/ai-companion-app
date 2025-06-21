@@ -33,6 +33,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "This app needs to access your contacts to let you select your emergency contacts."
+        }
       ]
     ],
     "experiments": {
