@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 
 const { width, height } = Dimensions.get("window");
@@ -392,7 +392,6 @@ For development, you can also replace the API key directly in the code.
           <MapView
             ref={mapRef}
             style={styles.map}
-            provider={PROVIDER_GOOGLE}
             initialRegion={{
               latitude: currentLocation.latitude,
               longitude: currentLocation.longitude,
