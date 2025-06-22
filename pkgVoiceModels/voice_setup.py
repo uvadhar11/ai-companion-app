@@ -12,7 +12,6 @@ def get_existing_agent_id(vapi_client, PERMANENT_ID):
 
 def get_existing_agent_object(vapi_client, PERMANENT_ID):
     try:
-        print(vapi_client.assistants.get(PERMANENT_ID))
         return vapi_client.assistants.get(PERMANENT_ID)
     except Exception:
         print(f"Error returning assistant object")
