@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { ImageSourcePropType } from 'react-native';
+
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
+  Image,
   SafeAreaView,
   ScrollView,
-  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Companion {
@@ -16,41 +18,49 @@ interface Companion {
   name: string;
   description: string;
   personality: string;
-  image: string;
+  image: ImageSourcePropType;
 }
 
 interface CompanionSelectionScreenProps {
   onNavigateBack: () => void;
 }
 
+const imageMap = {
+  dad: require('@/assets/images/dad.png'),
+  mom: require('@/assets/images/mom.png'),
+  nick: require('@/assets/images/man.png'),
+  sophie: require('@/assets/images/woman.png'),
+};
+
+
 const companions: Companion[] = [
   {
     id: "mom",
     name: "Mom",
-    description: "Soft-spoken, warm, and calming.",
+    description: "Soft-spoken, warm & calming.",
     personality: "She checks in on you and is here for you.",
-    image: "/placeholder.svg?height=60&width=60",
+    image: imageMap["mom"],
   },
   {
     id: "dad",
     name: "Dad",
-    description: "Supportive and protective.",
+    description: "Supportive & protective.",
     personality: "He makes sure you feel safe and never alone on the road.",
-    image: "/placeholder.svg?height=60&width=60",
+    image: imageMap["dad"],
   },
   {
     id: "sophie",
     name: "Sophie",
-    description: "Chill and always down to chat.",
-    personality: "She'll distract you with fun topics and honest girl talk.",
-    image: "/placeholder.svg?height=60&width=60",
+    description: "Chill & always down to chat.",
+    personality: "She distracts you with fun topics and honest girl talk.",
+    image: imageMap["sophie"],
   },
   {
     id: "nick",
     name: "Nick",
-    description: "Relaxed, funny, and keeps it light.",
-    personality: "He'll talk about anything to help you feel more at ease.",
-    image: "/placeholder.svg?height=60&width=60",
+    description: "Relaxed, funny & keeps it light.",
+    personality: "He talks about anything to help you feel more at ease.",
+    image: imageMap["nick"],
   },
 ];
 
@@ -90,7 +100,7 @@ export default function CompanionSelectionScreen({
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Choose your AI{"\n"}companion</Text>
+          <Text style={styles.title}>Choose your AI companion</Text>
         </View>
 
         <View style={styles.companionsList}>
@@ -104,7 +114,7 @@ export default function CompanionSelectionScreen({
               onPress={() => handleCompanionSelect(companion.id)}
             >
               <Image
-                source={{ uri: companion.image }}
+                source={companion.image}
                 style={styles.companionImage}
               />
               <View style={styles.companionInfo}>
@@ -180,14 +190,14 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 30,
     alignItems: "center",
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#1e40af",
+    color: "black",
     textAlign: "center",
     lineHeight: 36,
   },
