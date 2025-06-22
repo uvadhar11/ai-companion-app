@@ -111,7 +111,7 @@ export default function CompanionSelectionScreen({
         if (type === "incoming") {
             const userPhoneNumber = "+12799778354"; // Replace with the actual user's phone number
             try {
-                const response = await fetch('http://localhost:5000/outbound_call', {
+                const response = await fetch('http://[2607:f140:6000:8008:ac27:61da:5c45:d378]:5000/outbound_call', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
