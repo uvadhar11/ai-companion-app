@@ -33,7 +33,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <StatusBar style='auto' />
+      <StatusBar style='dark' />
     </ThemeProvider>
   );
 }

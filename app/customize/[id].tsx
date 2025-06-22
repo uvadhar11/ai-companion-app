@@ -9,13 +9,14 @@ export default function CustomizeCompanionScreen() {
   const navigation = useNavigation();
 
   useLayoutEffect(() => {
-  if (id) {
-    const capitalized = (id as string).charAt(0).toUpperCase() + (id as string).slice(1);
-    navigation.setOptions({
-      title: capitalized,
-      headerBackTitle: 'Call AI',
-    });
-  }
+    if (id) {
+      const capitalized = (id as string).charAt(0).toUpperCase() + (id as string).slice(1);
+      navigation.setOptions({
+        title: capitalized,
+        headerBackTitle: 'Call AI',
+        headerShown: false, // Remove the black header
+      });
+    }
   }, [id]);
 
   const companion = companions.find(c => c.id === id);
@@ -28,7 +29,7 @@ export default function CustomizeCompanionScreen() {
       <Text style={styles.name}>{companion.name}</Text>
 
       <Section title="Description" content={companion.description} />
-      <Section title="Safe word" content={`“${companion.safeWord}”`} editable />
+      <Section title="Safe word" content={`"${companion.safeWord}"`} editable />
       <Section title="Emergency contact" content={companion.emergencyContact} editable />
       <Section title="Personal context" content={companion.personalContext} editable />
     </ScrollView>

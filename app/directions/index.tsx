@@ -67,14 +67,13 @@ export default function DirectionsScreen() {
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Directions</Text>
-          <View style={{ width: 40 }} /> {/* Spacer for alignment */}
+          <View style={{ width: 40 }} />
         </View>
         <View style={styles.routeStats}>
           <Text style={styles.routeDistance}>{routeInfo.distance}</Text>
           <Text style={styles.routeDuration}>
-            {`${routeInfo.duration} • ${
-              routeMode === "walking" ? "Walking" : "Driving"
-            }`}
+            <Text>{routeInfo.duration} • </Text>
+            <Text>{routeMode === "walking" ? "Walking" : "Driving"}</Text>
           </Text>
         </View>
         <ScrollView
@@ -91,7 +90,8 @@ export default function DirectionsScreen() {
               <View style={styles.stepInfo}>
                 <Text style={styles.stepInstruction}>{step.instruction}</Text>
                 <Text style={styles.stepDetails}>
-                  {`${step.distance} • ${step.duration}`}
+                  <Text>{step.distance} • </Text>
+                  <Text>{step.duration}</Text>
                 </Text>
               </View>
             </View>
