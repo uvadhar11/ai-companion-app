@@ -1,49 +1,46 @@
 import { companions } from '@/app/(tabs)/companionScreen';
-import { useCompanionCustomization } from '@/hooks/useStorage';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { useLayoutEffect, useState } from 'react';
-import {
-  ActivityIndicator,
+import { 
+  Image, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  TextInput, 
+  Modal, 
   Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+  ActivityIndicator 
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useCompanionCustomization } from '@/hooks/useStorage';
 
 export default function CustomizeCompanionScreen() {
   const { id } = useLocalSearchParams();
   const navigation = useNavigation();
-  
-  const {
-    customization,
-    loading,
-    error,
-    updateCustomization,
-  } = useCompanionCustomization(id as string);
+
+  const { customization, loading, error, updateCustomization } =
+    useCompanionCustomization(id as string);
 
   // Modal states
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
     if (id) {
-      const capitalized = (id as string).charAt(0).toUpperCase() + (id as string).slice(1);
+      const capitalized =
+        (id as string).charAt(0).toUpperCase() + (id as string).slice(1);
       navigation.setOptions({
         title: capitalized,
-        headerBackTitle: 'Call AI',
+        headerBackTitle: "Call AI",
         headerShown: false,
       });
     }
   }, [id]);
 
-  const companion = companions.find(c => c.id === id);
+  const companion = companions.find((c) => c.id === id);
 
   if (!companion) return <Text>Companion not found</Text>;
 
@@ -55,7 +52,6 @@ export default function CustomizeCompanionScreen() {
   const handleSave = async () => {
     if (!editingField) return;
     
-    //console.log("handleSave called for field:", editingField);
     setSaving(true);
     try {
       await updateCustomization({
@@ -69,10 +65,10 @@ export default function CustomizeCompanionScreen() {
       }
 
       setEditingField(null);
-      setEditValue('');
-      Alert.alert('Success', 'Changes saved successfully!');
+      setEditValue("");
+      Alert.alert("Success", "Changes saved successfully!");
     } catch (error) {
-      Alert.alert('Error', 'Failed to save changes');
+      Alert.alert("Error", "Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -100,44 +96,44 @@ export default function CustomizeCompanionScreen() {
 
   const handleCancel = () => {
     setEditingField(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const getFieldValue = (field: string) => {
     if (customization) {
       switch (field) {
-        case 'safeWord':
+        case "safeWord":
           return customization.safeWord;
-        case 'emergencyContact':
+        case "emergencyContact":
           return customization.emergencyContact;
-        case 'personalContext':
+        case "personalContext":
           return customization.personalContext;
         default:
-          return '';
+          return "";
       }
     }
-    
+
     // Return default values from companion data
     switch (field) {
-      case 'safeWord':
+      case "safeWord":
         return companion.safeWord;
-      case 'emergencyContact':
+      case "emergencyContact":
         return companion.emergencyContact;
-      case 'personalContext':
+      case "personalContext":
         return companion.personalContext;
       default:
-        return '';
+        return "";
     }
   };
 
   const getFieldLabel = (field: string) => {
     switch (field) {
-      case 'safeWord':
-        return 'Safe Word';
-      case 'emergencyContact':
-        return 'Emergency Contact';
-      case 'personalContext':
-        return 'Personal Context';
+      case "safeWord":
+        return "Safe Word";
+      case "emergencyContact":
+        return "Emergency Contact";
+      case "personalContext":
+        return "Personal Context";
       default:
         return field;
     }
@@ -145,14 +141,14 @@ export default function CustomizeCompanionScreen() {
 
   const getFieldDescription = (field: string) => {
     switch (field) {
-      case 'safeWord':
-        return 'A phrase that will immediately transfer the call to your emergency contact';
-      case 'emergencyContact':
-        return 'Phone number to call when the safe word is used';
-      case 'personalContext':
-        return 'Personal details to help the AI companion have more natural conversations';
+      case "safeWord":
+        return "A phrase that will immediately transfer the call to your emergency contact";
+      case "emergencyContact":
+        return "Phone number to call when the safe word is used";
+      case "personalContext":
+        return "Personal details to help the AI companion have more natural conversations";
       default:
-        return '';
+        return "";
     }
   };
 
@@ -160,7 +156,7 @@ export default function CustomizeCompanionScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -183,7 +179,7 @@ export default function CustomizeCompanionScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -204,7 +200,7 @@ export default function CustomizeCompanionScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -220,30 +216,31 @@ export default function CustomizeCompanionScreen() {
         <Image source={companion.image} style={styles.avatar} />
         <Text style={styles.name}>{companion.name}</Text>
 
-        <Section 
-          title="Description" 
-          content={companion.description} 
-        />
-        
+        <Section title="Description" content={companion.description} />
+
         <EditableSection
           title="Safe Word"
-          content={getFieldValue('safeWord')}
-          description={getFieldDescription('safeWord')}
-          onEdit={() => handleEdit('safeWord', getFieldValue('safeWord'))}
+          content={getFieldValue("safeWord")}
+          description={getFieldDescription("safeWord")}
+          onEdit={() => handleEdit("safeWord", getFieldValue("safeWord"))}
         />
-        
+
         <EditableSection
           title="Emergency Contact"
-          content={getFieldValue('emergencyContact')}
-          description={getFieldDescription('emergencyContact')}
-          onEdit={() => handleEdit('emergencyContact', getFieldValue('emergencyContact'))}
+          content={getFieldValue("emergencyContact")}
+          description={getFieldDescription("emergencyContact")}
+          onEdit={() =>
+            handleEdit("emergencyContact", getFieldValue("emergencyContact"))
+          }
         />
-        
+
         <EditableSection
           title="Personal Context"
-          content={getFieldValue('personalContext')}
-          description={getFieldDescription('personalContext')}
-          onEdit={() => handleEdit('personalContext', getFieldValue('personalContext'))}
+          content={getFieldValue("personalContext")}
+          description={getFieldDescription("personalContext")}
+          onEdit={() =>
+            handleEdit("personalContext", getFieldValue("personalContext"))
+          }
           multiline
         />
       </ScrollView>
@@ -257,7 +254,7 @@ export default function CustomizeCompanionScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              Edit {getFieldLabel(editingField || '')}
+              Edit {getFieldLabel(editingField || "")}
             </Text>
             <TouchableOpacity
               style={styles.modalCloseButton}
@@ -269,21 +266,26 @@ export default function CustomizeCompanionScreen() {
 
           <View style={styles.modalContent}>
             <Text style={styles.modalDescription}>
-              {getFieldDescription(editingField || '')}
+              {getFieldDescription(editingField || "")}
             </Text>
-            
+
             <TextInput
               style={[
                 styles.modalInput,
-                editingField === 'personalContext' && styles.modalInputMultiline
+                editingField === "personalContext" &&
+                  styles.modalInputMultiline,
               ]}
               value={editValue}
               onChangeText={setEditValue}
-              placeholder={`Enter ${getFieldLabel(editingField || '').toLowerCase()}...`}
+              placeholder={`Enter ${getFieldLabel(
+                editingField || ""
+              ).toLowerCase()}...`}
               placeholderTextColor="#9ca3af"
-              multiline={editingField === 'personalContext'}
-              numberOfLines={editingField === 'personalContext' ? 6 : 1}
-              textAlignVertical={editingField === 'personalContext' ? 'top' : 'center'}
+              multiline={editingField === "personalContext"}
+              numberOfLines={editingField === "personalContext" ? 6 : 1}
+              textAlignVertical={
+                editingField === "personalContext" ? "top" : "center"
+              }
               autoFocus
             />
 
@@ -294,9 +296,12 @@ export default function CustomizeCompanionScreen() {
               >
                 <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]}
+                style={[
+                  styles.modalSaveButton,
+                  saving && styles.modalSaveButtonDisabled,
+                ]}
                 onPress={handleSave}
                 disabled={saving}
               >
@@ -325,15 +330,15 @@ function Section({ title, content }: { title: string; content: string }) {
   );
 }
 
-function EditableSection({ 
-  title, 
-  content, 
-  description, 
-  onEdit, 
-  multiline = false 
-}: { 
-  title: string; 
-  content: string; 
+function EditableSection({
+  title,
+  content,
+  description,
+  onEdit,
+  multiline = false,
+}: {
+  title: string;
+  content: string;
   description?: string;
   onEdit: () => void;
   multiline?: boolean;
@@ -359,29 +364,29 @@ function EditableSection({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: "#f1f5f9",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: "#f1f5f9",
   },
   backButton: {
     padding: 5,
   },
   backButtonText: {
-    color: '#1e40af',
+    color: "#1e40af",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -391,169 +396,169 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 10,
-    backgroundColor: '#d1d5db',
+    backgroundColor: "#d1d5db",
   },
   name: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginVertical: 16,
-    color: '#0f172a',
+    color: "#0f172a",
   },
   sectionContainer: {
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1e3a8a',
+    fontWeight: "700",
+    color: "#1e3a8a",
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 8,
     lineHeight: 20,
   },
   cardRow: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
   },
   editableCardRow: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   cardText: {
     flex: 1,
     fontSize: 14,
-    color: '#334155',
+    color: "#334155",
     lineHeight: 20,
   },
   cardTextMultiline: {
     minHeight: 60,
   },
   editIconContainer: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: "#dbeafe",
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 12,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   loadingText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
     fontSize: 16,
-    color: '#ef4444',
-    textAlign: 'center',
+    color: "#ef4444",
+    textAlign: "center",
   },
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: "#e5e7eb",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
   },
   modalCloseButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     padding: 20,
   },
   modalDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 16,
     lineHeight: 20,
   },
   modalInput: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    color: '#1e293b',
+    borderColor: "#e5e7eb",
+    color: "#1e293b",
     marginBottom: 24,
   },
   modalInputMultiline: {
     height: 120,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   modalButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: "#d1d5db",
     borderRadius: 12,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalCancelButtonText: {
-    color: '#6b7280',
+    color: "#6b7280",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalSaveButton: {
     flex: 1,
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
     borderRadius: 12,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalSaveButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: "#9ca3af",
   },
   modalSaveButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

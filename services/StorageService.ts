@@ -1,8 +1,14 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppData, DEFAULT_APP_DATA, UserProfile, CompanionCustomization, Contact } from '@/types/storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  AppData,
+  DEFAULT_APP_DATA,
+  UserProfile,
+  CompanionCustomization,
+  Contact,
+} from "@/types/storage";
 
 class StorageService {
-  private static readonly STORAGE_KEY = '@CompanionAI:AppData';
+  private static readonly STORAGE_KEY = "@CompanionAI:AppData";
   private static instance: StorageService;
   private cache: AppData | null = null;
 
@@ -25,9 +31,9 @@ class StorageService {
         this.cache = { ...DEFAULT_APP_DATA };
         await this.saveData(this.cache);
       }
-      return this.cache;
+      return this.cache ?? { ...DEFAULT_APP_DATA };
     } catch (error) {
-      console.error('Error initializing storage:', error);
+      console.error("Error initializing storage:", error);
       this.cache = { ...DEFAULT_APP_DATA };
       return this.cache;
     }
@@ -44,10 +50,13 @@ class StorageService {
   // Save data to storage and update cache
   private async saveData(data: AppData): Promise<void> {
     try {
-      await AsyncStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(data));
+      await AsyncStorage.setItem(
+        StorageService.STORAGE_KEY,
+        JSON.stringify(data)
+      );
       this.cache = data;
     } catch (error) {
-      console.error('Error saving data:', error);
+      console.error("Error saving data:", error);
       throw error;
     }
   }
@@ -83,49 +92,63 @@ class StorageService {
   async removeEmergencyContact(contactId: string): Promise<Contact[]> {
     const data = await this.getData();
     const updatedContacts = data.userProfile.emergencyContacts.filter(
-      contact => contact.id !== contactId
+      (contact) => contact.id !== contactId
     );
     await this.updateUserProfile({ emergencyContacts: updatedContacts });
     return updatedContacts;
   }
 
   // Companion Customization Methods
-  async getCompanionCustomization(companionId: string): Promise<CompanionCustomization | null> {
+  async getCompanionCustomization(
+    companionId: string
+  ): Promise<CompanionCustomization | null> {
     const data = await this.getData();
     return data.companionCustomizations[companionId] || null;
   }
 
   async updateCompanionCustomization(
-    companionId: string, 
+    companionId: string,
     customization: Partial<CompanionCustomization>
   ): Promise<CompanionCustomization> {
     const data = await this.getData();
     const currentCustomization = data.companionCustomizations[companionId] || {
       id: companionId,
-      safeWord: 'Do you want to order pizza?',
-      emergencyContact: '',
-      personalContext: '',
+      safeWord: "Do you want to order pizza?",
+      emergencyContact: "",
+      personalContext: "",
     };
-    
+
     const updatedCustomization = { ...currentCustomization, ...customization };
     const updatedCustomizations = {
       ...data.companionCustomizations,
       [companionId]: updatedCustomization,
     };
-    
     await this.updateData({ companionCustomizations: updatedCustomizations });
     return updatedCustomization;
   }
 
   // Settings Methods
-  async getSettings(): Promise<AppData['settings']> {
+  async getSettings(): Promise<AppData["settings"]> {
     const data = await this.getData();
     return data.settings || DEFAULT_APP_DATA.settings;
   }
 
-  async updateSettings(settings: Partial<NonNullable<AppData['settings']>>): Promise<AppData['settings']> {
+  async updateSettings(
+    settings: Partial<NonNullable<AppData["settings"]>>
+  ): Promise<AppData["settings"]> {
     const data = await this.getData();
-    const updatedSettings = { ...data.settings, ...settings };
+    const updatedSettings = {
+      notifications:
+        settings.notifications ??
+        data.settings?.notifications ??
+        DEFAULT_APP_DATA.settings?.notifications ??
+        false,
+      darkMode:
+        settings.darkMode ??
+        data.settings?.darkMode ??
+        DEFAULT_APP_DATA.settings?.darkMode ??
+        false,
+    };
     await this.updateData({ settings: updatedSettings });
     return updatedSettings;
   }
@@ -136,7 +159,7 @@ class StorageService {
       await AsyncStorage.removeItem(StorageService.STORAGE_KEY);
       this.cache = { ...DEFAULT_APP_DATA };
     } catch (error) {
-      console.error('Error clearing data:', error);
+      console.error("Error clearing data:", error);
       throw error;
     }
   }
@@ -153,8 +176,8 @@ class StorageService {
       await this.saveData(mergedData);
       return mergedData;
     } catch (error) {
-      console.error('Error importing data:', error);
-      throw new Error('Invalid data format');
+      console.error("Error importing data:", error);
+      throw new Error("Invalid data format");
     }
   }
 }

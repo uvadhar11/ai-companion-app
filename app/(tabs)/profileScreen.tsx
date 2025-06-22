@@ -53,22 +53,14 @@ const ProfileScreen = () => {
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
 
-  // Auto-save state
+  // - Added auto-save state management
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
 
-  // Initialize form with profile data
-  useEffect(() => {
-    if (profile) {
-      setName(profile.name);
-      setPhone(profile.phone);
-    }
-  }, [profile]);
-
-  // Auto-save functionality
+  // - Added debounced auto-save function (500ms delay)
   const autoSaveProfile = async (nameValue: string, phoneValue: string) => {
-    // Clear existing timeout
+    // Clear existing timeout to prevent multiple saves
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -83,33 +75,23 @@ const ProfileScreen = () => {
         });
         setLastSaved(new Date());
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        console.error("Auto-save failed:", error);
       } finally {
         setAutoSaving(false);
       }
     }, 500);
   };
 
-  // Handle name change with auto-save
+  // - Modified input handlers to trigger auto-save
   const handleNameChange = (value: string) => {
     setName(value);
-    autoSaveProfile(value, phone);
+    autoSaveProfile(value, phone); // AUTO-SAVE TRIGGER
   };
 
-  // Handle phone change with auto-save
   const handlePhoneChange = (value: string) => {
     setPhone(value);
-    autoSaveProfile(name, value);
+    autoSaveProfile(name, value); // AUTO-SAVE TRIGGER
   };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     // Filter contacts based on search query
@@ -218,7 +200,10 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleAddEmergencyContact = async (contact: DeviceContact, phoneNumber: string) => {
+  const handleAddEmergencyContact = async (
+    contact: DeviceContact,
+    phoneNumber: string
+  ) => {
     const newContact: Contact = {
       id: `${contact.id}-${phoneNumber}`,
       name: contact.name,
@@ -395,14 +380,17 @@ const ProfileScreen = () => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSeconds = Math.floor(diffMs / 1000);
-    
+
     if (diffSeconds < 60) {
-      return 'Saved just now';
+      return "Saved just now";
     } else if (diffSeconds < 3600) {
       const minutes = Math.floor(diffSeconds / 60);
-      return `Saved ${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      return `Saved ${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
     } else {
-      return `Saved at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Saved at ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
     }
   };
 
@@ -421,8 +409,13 @@ const ProfileScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error loading profile: {profileError}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => window.location.reload()}>
+          <Text style={styles.errorText}>
+            Error loading profile: {profileError}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => window.location.reload()}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -446,15 +439,17 @@ const ProfileScreen = () => {
                 </View>
               )}
               {!autoSaving && lastSaved && (
-                <Text style={styles.savedText}>{formatLastSaved(lastSaved)}</Text>
+                <Text style={styles.savedText}>
+                  {formatLastSaved(lastSaved)}
+                </Text>
               )}
             </View>
           </View>
-          
+
           <Text style={styles.autoSaveNote}>
             Changes are automatically saved as you type
           </Text>
-          
+
           <View style={{ height: 16 }} />
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name</Text>
@@ -568,12 +563,14 @@ const ProfileScreen = () => {
             </View>
           )}
 
-          {profile?.emergencyContacts.length > 0 && profile.emergencyContacts.length < 3 && (
-            <Text style={styles.helperText}>
-              You can add {3 - profile.emergencyContacts.length} more emergency contact
-              {3 - profile.emergencyContacts.length !== 1 ? "s" : ""}
-            </Text>
-          )}
+          {(profile?.emergencyContacts?.length ?? 0) > 0 &&
+            (profile?.emergencyContacts?.length ?? 0) < 3 && (
+              <Text style={styles.helperText}>
+                You can add {3 - (profile?.emergencyContacts?.length ?? 0)} more
+                emergency contact
+                {3 - (profile?.emergencyContacts?.length ?? 0) !== 1 ? "s" : ""}
+              </Text>
+            )}
         </View>
       </ScrollView>
 
@@ -1090,3 +1087,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 });
+function updateProfile(arg0: { name: string; phone: string }) {
+  throw new Error("Function not implemented.");
+}

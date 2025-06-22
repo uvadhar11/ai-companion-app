@@ -30,8 +30,8 @@ export interface AppData {
 
 export const DEFAULT_APP_DATA: AppData = {
   userProfile: {
-    name: '',
-    phone: '',
+    name: "",
+    phone: "",
     emergencyContacts: [],
   },
   companionCustomizations: {},

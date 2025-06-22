@@ -94,6 +94,13 @@ export default function MapScreen(/*{ onNavigateBack }: MapScreenProps*/) {
     return () => clearTimeout(timeoutId);
   }, [destination]);
 
+  // AUTO-CALCULATE ROUTE WHEN DESTINATION IS SET OR ROUTE MODE CHANGES
+  useEffect(() => {
+    if (currentLocation && destinationCoords && !loading) {
+      calculateRoute();
+    }
+  }, [currentLocation, destinationCoords, routeMode]);
+
   const getCurrentLocation = async () => {
     try {
       setLocationLoading(true);
@@ -168,6 +175,7 @@ export default function MapScreen(/*{ onNavigateBack }: MapScreenProps*/) {
       const coords = await getPlaceDetails(prediction.place_id);
       if (coords) {
         setDestinationCoords(coords);
+        // Route will be automatically calculated by the useEffect above
       }
     } catch (error) {
       console.error("Error getting place details:", error);
@@ -222,9 +230,9 @@ export default function MapScreen(/*{ onNavigateBack }: MapScreenProps*/) {
     }
   };
 
-  const getDirections = async () => {
-    if (!currentLocation || !destination.trim()) {
-      Alert.alert("Error", "Please enter a destination");
+  // RENAMED FROM getDirections TO calculateRoute FOR CLARITY
+  const calculateRoute = async () => {
+    if (!currentLocation || !destinationCoords) {
       return;
     }
 
@@ -255,17 +263,9 @@ For development, you can also replace the API key directly in the code.
     setLoading(true);
     setShowPredictions(false);
     try {
-      let destCoords = destinationCoords;
-
-      // If we don't have coordinates yet, geocode the address
-      if (!destCoords) {
-        destCoords = await geocodeDestination(destination);
-        if (!destCoords) return;
-      }
-
       const route = await getGoogleDirections(
         currentLocation,
-        destCoords,
+        destinationCoords,
         routeMode
       );
       if (route) {
@@ -296,6 +296,24 @@ For development, you can also replace the API key directly in the code.
       console.error("Route error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // MANUAL ROUTE CALCULATION (FOR GO BUTTON)
+  const getDirections = async () => {
+    if (!currentLocation || !destination.trim()) {
+      Alert.alert("Error", "Please enter a destination");
+      return;
+    }
+
+    // If we don't have coordinates yet, geocode the address first
+    if (!destinationCoords) {
+      const coords = await geocodeDestination(destination);
+      if (!coords) return;
+      // Route will be automatically calculated by the useEffect
+    } else {
+      // If we already have coordinates, just calculate the route
+      await calculateRoute();
     }
   };
 
