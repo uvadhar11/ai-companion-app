@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -9,9 +9,13 @@ import {
   View,
   Alert,
   Platform,
-  Linking
+  Linking,
+  Modal,
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
+import { Search, User, Phone, X, Plus, UserPlus, Settings } from 'lucide-react-native';
 
 interface Contact {
   id: string;
@@ -19,11 +23,42 @@ interface Contact {
   phoneNumber: string;
 }
 
+interface DeviceContact {
+  id: string;
+  name: string;
+  phoneNumbers: string[];
+}
+
 const ProfileScreen = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [emergencyContacts, setEmergencyContacts] = useState<Contact[]>([]);
   const [contactPermissionStatus, setContactPermissionStatus] = useState<string>('unknown');
+  
+  // Contact selection modal state
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<DeviceContact[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  
+  // Manual contact entry modal state
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+
+  useEffect(() => {
+    // Filter contacts based on search query
+    if (searchQuery.trim() === '') {
+      setFilteredContacts(deviceContacts);
+    } else {
+      const filtered = deviceContacts.filter(contact =>
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.phoneNumbers.some(phone => phone.includes(searchQuery))
+      );
+      setFilteredContacts(filtered);
+    }
+  }, [searchQuery, deviceContacts]);
 
   const checkContactPermissions = async () => {
     if (Platform.OS === 'web') {
@@ -41,102 +76,82 @@ const ProfileScreen = () => {
       return false;
     }
 
-    // First check current permission status
     const currentStatus = await checkContactPermissions();
     
     if (currentStatus === 'granted') {
       return true;
     }
 
-    // Request permissions
     const { status } = await Contacts.requestPermissionsAsync();
     setContactPermissionStatus(status);
 
     if (status === 'granted') {
       return true;
     } else if (status === 'denied') {
-      // Show alert explaining how to enable full access
-      Alert.alert(
-        'Contact Access Required',
-        'To add emergency contacts, we need access to your contacts. Please go to Settings > Privacy & Security > Contacts > CompanionAI and enable "Full Access".',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Open Settings', 
-            onPress: () => {
-              if (Platform.OS === 'ios') {
-                Linking.openURL('app-settings:');
-              } else {
-                Linking.openSettings();
-              }
-            }
-          }
-        ]
-      );
+      showPermissionAlert();
       return false;
     }
 
     return false;
   };
 
-  const selectContact = async () => {
+  const showPermissionAlert = () => {
+    Alert.alert(
+      'Contact Access Required',
+      'To add emergency contacts, we need access to your contacts. Please go to Settings > Privacy & Security > Contacts > CompanionAI and enable "Full Access".',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Open Settings', 
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Linking.openURL('app-settings:');
+            } else {
+              Linking.openSettings();
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const loadDeviceContacts = async () => {
     const hasPermission = await requestFullContactAccess();
     if (!hasPermission) return;
 
+    setLoadingContacts(true);
     try {
-      // Get all contacts with full access
       const { data } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
         sort: Contacts.SortTypes.FirstName,
       });
 
-      if (data.length > 0) {
-        // Filter out contacts that don't have phone numbers
-        const contactsWithPhones = data.filter(contact => 
-          contact.phoneNumbers && contact.phoneNumbers.length > 0
-        );
+      const contactsWithPhones = data
+        .filter(contact => contact.phoneNumbers && contact.phoneNumbers.length > 0)
+        .map(contact => ({
+          id: contact.id || Date.now().toString(),
+          name: contact.name || 'Unknown',
+          phoneNumbers: contact.phoneNumbers?.map(p => p.number || '') || []
+        }));
 
-        if (contactsWithPhones.length === 0) {
-          Alert.alert('No Contacts', 'No contacts with phone numbers found');
-          return;
-        }
-
-        // Show contact selection (limit to first 15 for UI purposes)
-        const contactsToShow = contactsWithPhones.slice(0, 15);
-        const contactOptions = contactsToShow.map((contact, index) => {
-          const phoneNumber = contact.phoneNumbers?.[0]?.number || 'No phone';
-          return `${index + 1}. ${contact.name} - ${phoneNumber}`;
-        }).join('\n');
-
-        Alert.alert(
-          'Select Emergency Contact',
-          `Choose a contact to add:\n\n${contactOptions}${contactsWithPhones.length > 15 ? '\n\n(Showing first 15 contacts)' : ''}`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            ...contactsToShow.map((contact, index) => ({
-              text: `${index + 1}`,
-              onPress: () => addEmergencyContact(contact)
-            }))
-          ],
-          { cancelable: true }
-        );
-      } else {
-        Alert.alert('No Contacts', 'No contacts found on your device');
-      }
+      setDeviceContacts(contactsWithPhones);
+      setFilteredContacts(contactsWithPhones);
+      setShowContactModal(true);
     } catch (error) {
       console.error('Contact access error:', error);
       Alert.alert(
         'Access Error', 
-        'Unable to access contacts. You may need to grant full contact access in Settings > Privacy & Security > Contacts.'
+        'Unable to access contacts. You may need to grant full contact access in Settings.'
       );
+    } finally {
+      setLoadingContacts(false);
     }
   };
 
-  const addEmergencyContact = (contact: any) => {
-    const phoneNumber = contact.phoneNumbers?.[0]?.number || '';
+  const addEmergencyContact = (contact: DeviceContact, phoneNumber: string) => {
     const newContact: Contact = {
-      id: contact.id || Date.now().toString(),
-      name: contact.name || 'Unknown',
+      id: `${contact.id}-${phoneNumber}`,
+      name: contact.name,
       phoneNumber: phoneNumber
     };
 
@@ -152,6 +167,50 @@ const ProfileScreen = () => {
 
     if (emergencyContacts.length < 3) {
       setEmergencyContacts([...emergencyContacts, newContact]);
+      setShowContactModal(false);
+      setSearchQuery('');
+      Alert.alert('Success', `${newContact.name} has been added as an emergency contact`);
+    } else {
+      Alert.alert('Limit Reached', 'You can only add up to 3 emergency contacts');
+    }
+  };
+
+  const addManualContact = () => {
+    if (!manualName.trim() || !manualPhone.trim()) {
+      Alert.alert('Missing Information', 'Please enter both name and phone number');
+      return;
+    }
+
+    // Basic phone number validation
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    const cleanPhone = manualPhone.replace(/\D/g, '');
+    
+    if (cleanPhone.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      return;
+    }
+
+    const newContact: Contact = {
+      id: Date.now().toString(),
+      name: manualName.trim(),
+      phoneNumber: manualPhone.trim()
+    };
+
+    // Check if contact is already added
+    const isAlreadyAdded = emergencyContacts.some(
+      existingContact => existingContact.phoneNumber === newContact.phoneNumber
+    );
+
+    if (isAlreadyAdded) {
+      Alert.alert('Already Added', 'This phone number is already in your emergency contacts list');
+      return;
+    }
+
+    if (emergencyContacts.length < 3) {
+      setEmergencyContacts([...emergencyContacts, newContact]);
+      setShowManualModal(false);
+      setManualName('');
+      setManualPhone('');
       Alert.alert('Success', `${newContact.name} has been added as an emergency contact`);
     } else {
       Alert.alert('Limit Reached', 'You can only add up to 3 emergency contacts');
@@ -197,6 +256,36 @@ const ProfileScreen = () => {
     );
   };
 
+  const renderContactItem = ({ item }: { item: DeviceContact }) => (
+    <View style={styles.contactItem}>
+      <View style={styles.contactItemHeader}>
+        <View style={styles.contactAvatar}>
+          <User size={20} color="#6b7280" />
+        </View>
+        <View style={styles.contactItemInfo}>
+          <Text style={styles.contactItemName}>{item.name}</Text>
+          <Text style={styles.contactItemCount}>
+            {item.phoneNumbers.length} number{item.phoneNumbers.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={styles.phoneNumbersList}>
+        {item.phoneNumbers.map((phoneNumber, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.phoneNumberItem}
+            onPress={() => addEmergencyContact(item, phoneNumber)}
+          >
+            <Phone size={16} color="#6b7280" />
+            <Text style={styles.phoneNumberText}>{phoneNumber}</Text>
+            <Plus size={16} color="#3b82f6" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -230,20 +319,12 @@ const ProfileScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.helpButton}
-                onPress={showPermissionHelp}
-              >
-                <Text style={styles.helpButtonText}>?</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={selectContact}
-              >
-                <Text style={styles.addButtonText}>+ Add Contact</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity 
+              style={styles.helpButton}
+              onPress={showPermissionHelp}
+            >
+              <Settings size={16} color="#6b7280" />
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.sectionDescription}>
@@ -253,35 +334,69 @@ const ProfileScreen = () => {
           {Platform.OS === 'ios' && (
             <View style={styles.permissionNotice}>
               <Text style={styles.permissionNoticeText}>
-                💡 If you can only see limited contacts, tap the "?" button for help accessing all your contacts
+                💡 If you can only see limited contacts, tap the settings icon for help accessing all your contacts
               </Text>
             </View>
           )}
 
+          <View style={styles.addContactButtons}>
+            <TouchableOpacity 
+              style={[styles.addButton, styles.primaryButton]}
+              onPress={loadDeviceContacts}
+              disabled={loadingContacts}
+            >
+              {loadingContacts ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <User size={16} color="white" />
+              )}
+              <Text style={styles.addButtonText}>
+                {loadingContacts ? 'Loading...' : 'From Contacts'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.addButton, styles.secondaryButton]}
+              onPress={() => setShowManualModal(true)}
+            >
+              <UserPlus size={16} color="#3b82f6" />
+              <Text style={styles.addButtonTextSecondary}>Add Manually</Text>
+            </TouchableOpacity>
+          </View>
+
           {emergencyContacts.length === 0 ? (
             <View style={styles.emptyState}>
+              <User size={48} color="#d1d5db" />
               <Text style={styles.emptyStateText}>No emergency contacts added yet</Text>
               <Text style={styles.emptyStateSubtext}>
-                Tap "Add Contact" to select from your contacts
+                Choose from your contacts or add manually
               </Text>
             </View>
           ) : (
-            emergencyContacts.map((contact, index) => (
-              <View key={contact.id} style={styles.contactCard}>
-                <View style={styles.contactInfo}>
-                  <Text style={styles.contactName}>
-                    Contact #{index + 1}: {contact.name}
-                  </Text>
-                  <Text style={styles.contactPhone}>{contact.phoneNumber}</Text>
+            <View style={styles.contactsList}>
+              {emergencyContacts.map((contact, index) => (
+                <View key={contact.id} style={styles.contactCard}>
+                  <View style={styles.contactCardHeader}>
+                    <View style={styles.contactCardAvatar}>
+                      <User size={20} color="#3b82f6" />
+                    </View>
+                    <View style={styles.contactCardInfo}>
+                      <Text style={styles.contactCardName}>{contact.name}</Text>
+                      <View style={styles.contactCardPhone}>
+                        <Phone size={14} color="#6b7280" />
+                        <Text style={styles.contactCardPhoneText}>{contact.phoneNumber}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removeEmergencyContact(contact.id)}
+                    >
+                      <X size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeEmergencyContact(contact.id)}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            ))
+              ))}
+            </View>
           )}
 
           {emergencyContacts.length > 0 && emergencyContacts.length < 3 && (
@@ -295,6 +410,117 @@ const ProfileScreen = () => {
           <Text style={styles.saveButtonText}>Save Profile</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Contact Selection Modal */}
+      <Modal
+        visible={showContactModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Contact</Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => {
+                setShowContactModal(false);
+                setSearchQuery('');
+              }}
+            >
+              <X size={24} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <Search size={20} color="#6b7280" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search contacts..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={20} color="#6b7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <FlatList
+            data={filteredContacts}
+            renderItem={renderContactItem}
+            keyExtractor={(item) => item.id}
+            style={styles.contactsList}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptySearchState}>
+                <Search size={48} color="#d1d5db" />
+                <Text style={styles.emptySearchText}>
+                  {searchQuery ? 'No contacts found' : 'No contacts available'}
+                </Text>
+                <Text style={styles.emptySearchSubtext}>
+                  {searchQuery ? 'Try a different search term' : 'Make sure you have contacts saved on your device'}
+                </Text>
+              </View>
+            }
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* Manual Contact Entry Modal */}
+      <Modal
+        visible={showManualModal}
+        animationType="slide"
+        presentationStyle="formSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Contact Manually</Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => {
+                setShowManualModal(false);
+                setManualName('');
+                setManualPhone('');
+              }}
+            >
+              <X size={24} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.manualFormContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contact Name</Text>
+              <TextInput
+                placeholder="Enter contact name"
+                value={manualName}
+                onChangeText={setManualName}
+                style={styles.input}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                placeholder="Enter phone number"
+                value={manualPhone}
+                onChangeText={setManualPhone}
+                style={styles.input}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, { marginTop: 24 }]}
+              onPress={addManualContact}
+            >
+              <Text style={styles.saveButtonText}>Add Emergency Contact</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -325,11 +551,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -343,7 +564,7 @@ const styles = StyleSheet.create({
   },
   permissionNotice: {
     backgroundColor: '#fef3c7',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderLeftWidth: 4,
@@ -374,33 +595,50 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   helpButton: {
-    backgroundColor: '#6b7280',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    backgroundColor: '#f3f4f6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  helpButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
+  addContactButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
   },
   addButton: {
-    backgroundColor: '#3b82f6',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    gap: 8,
+  },
+  primaryButton: {
+    backgroundColor: '#3b82f6',
+  },
+  secondaryButton: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
   },
   addButtonText: {
     color: 'white',
     fontWeight: '600',
     fontSize: 14,
   },
+  addButtonTextSecondary: {
+    color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   emptyState: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    padding: 32,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
@@ -410,6 +648,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     fontWeight: '500',
+    marginTop: 12,
     marginBottom: 4,
   },
   emptyStateSubtext: {
@@ -417,55 +656,69 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
   },
+  contactsList: {
+    gap: 12,
+  },
   contactCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  contactInfo: {
+  contactCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contactCardAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#dbeafe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  contactCardInfo: {
     flex: 1,
   },
-  contactName: {
+  contactCardName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 4,
   },
-  contactPhone: {
+  contactCardPhone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  contactCardPhoneText: {
     fontSize: 14,
     color: '#6b7280',
   },
   removeButton: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  removeButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fef2f2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   helperText: {
     fontSize: 12,
     color: '#6b7280',
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 12,
   },
   saveButton: {
     backgroundColor: '#10b981',
@@ -478,5 +731,125 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  contactItem: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  contactItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  contactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  contactItemInfo: {
+    flex: 1,
+  },
+  contactItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  contactItemCount: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  phoneNumbersList: {
+    gap: 8,
+  },
+  phoneNumberItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 10,
+  },
+  phoneNumberText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+  },
+  emptySearchState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptySearchText: {
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptySearchSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  manualFormContainer: {
+    padding: 20,
   },
 });
