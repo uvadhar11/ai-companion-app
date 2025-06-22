@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   View,
   Alert,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 
@@ -22,30 +23,71 @@ const ProfileScreen = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [emergencyContacts, setEmergencyContacts] = useState<Contact[]>([]);
+  const [contactPermissionStatus, setContactPermissionStatus] = useState<string>('unknown');
 
-  const requestContactsPermission = async () => {
+  const checkContactPermissions = async () => {
+    if (Platform.OS === 'web') {
+      return 'web-not-supported';
+    }
+
+    const { status } = await Contacts.getPermissionsAsync();
+    setContactPermissionStatus(status);
+    return status;
+  };
+
+  const requestFullContactAccess = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Not Available', 'Contact selection is not available on web platform');
       return false;
     }
 
+    // First check current permission status
+    const currentStatus = await checkContactPermissions();
+    
+    if (currentStatus === 'granted') {
+      return true;
+    }
+
+    // Request permissions
     const { status } = await Contacts.requestPermissionsAsync();
+    setContactPermissionStatus(status);
+
     if (status === 'granted') {
       return true;
-    } else {
-      Alert.alert('Permission Denied', 'We need access to your contacts to add emergency contacts');
+    } else if (status === 'denied') {
+      // Show alert explaining how to enable full access
+      Alert.alert(
+        'Contact Access Required',
+        'To add emergency contacts, we need access to your contacts. Please go to Settings > Privacy & Security > Contacts > CompanionAI and enable "Full Access".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open Settings', 
+            onPress: () => {
+              if (Platform.OS === 'ios') {
+                Linking.openURL('app-settings:');
+              } else {
+                Linking.openSettings();
+              }
+            }
+          }
+        ]
+      );
       return false;
     }
+
+    return false;
   };
 
   const selectContact = async () => {
-    const hasPermission = await requestContactsPermission();
+    const hasPermission = await requestFullContactAccess();
     if (!hasPermission) return;
 
     try {
-      // Get all contacts every time to allow selecting from the full list
+      // Get all contacts with full access
       const { data } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+        sort: Contacts.SortTypes.FirstName,
       });
 
       if (data.length > 0) {
@@ -59,29 +101,34 @@ const ProfileScreen = () => {
           return;
         }
 
-        // Show up to 10 contacts for selection
-        const contactsToShow = contactsWithPhones.slice(0, 10);
+        // Show contact selection (limit to first 15 for UI purposes)
+        const contactsToShow = contactsWithPhones.slice(0, 15);
         const contactOptions = contactsToShow.map((contact, index) => {
           const phoneNumber = contact.phoneNumbers?.[0]?.number || 'No phone';
           return `${index + 1}. ${contact.name} - ${phoneNumber}`;
         }).join('\n');
 
         Alert.alert(
-          'Select Contact',
-          `Choose a contact to add as emergency contact:\n\n${contactOptions}`,
+          'Select Emergency Contact',
+          `Choose a contact to add:\n\n${contactOptions}${contactsWithPhones.length > 15 ? '\n\n(Showing first 15 contacts)' : ''}`,
           [
             { text: 'Cancel', style: 'cancel' },
             ...contactsToShow.map((contact, index) => ({
               text: `${index + 1}`,
               onPress: () => addEmergencyContact(contact)
             }))
-          ]
+          ],
+          { cancelable: true }
         );
       } else {
         Alert.alert('No Contacts', 'No contacts found on your device');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to access contacts');
+      console.error('Contact access error:', error);
+      Alert.alert(
+        'Access Error', 
+        'Unable to access contacts. You may need to grant full contact access in Settings > Privacy & Security > Contacts.'
+      );
     }
   };
 
@@ -95,7 +142,7 @@ const ProfileScreen = () => {
 
     // Check if contact is already added
     const isAlreadyAdded = emergencyContacts.some(
-      existingContact => existingContact.id === newContact.id
+      existingContact => existingContact.phoneNumber === newContact.phoneNumber
     );
 
     if (isAlreadyAdded) {
@@ -122,6 +169,28 @@ const ProfileScreen = () => {
           style: 'destructive',
           onPress: () => {
             setEmergencyContacts(emergencyContacts.filter(contact => contact.id !== id));
+          }
+        }
+      ]
+    );
+  };
+
+  const showPermissionHelp = () => {
+    Alert.alert(
+      'Contact Access Help',
+      Platform.OS === 'ios' 
+        ? 'If you can only see limited contacts:\n\n1. Go to Settings > Privacy & Security > Contacts\n2. Find CompanionAI\n3. Select "Full Access" instead of "Selected Contacts"\n\nThis will allow you to choose from all your contacts.'
+        : 'If you\'re having trouble accessing contacts:\n\n1. Go to Settings > Apps > CompanionAI\n2. Tap Permissions\n3. Enable Contacts permission\n\nThis will allow you to choose from all your contacts.',
+      [
+        { text: 'OK' },
+        { 
+          text: 'Open Settings', 
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Linking.openURL('app-settings:');
+            } else {
+              Linking.openSettings();
+            }
           }
         }
       ]
@@ -161,23 +230,39 @@ const ProfileScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={selectContact}
-            >
-              <Text style={styles.addButtonText}>+ Add Contact</Text>
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.helpButton}
+                onPress={showPermissionHelp}
+              >
+                <Text style={styles.helpButtonText}>?</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={selectContact}
+              >
+                <Text style={styles.addButtonText}>+ Add Contact</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <Text style={styles.sectionDescription}>
             Add up to 3 emergency contacts who can be reached in case of emergency
           </Text>
 
+          {Platform.OS === 'ios' && (
+            <View style={styles.permissionNotice}>
+              <Text style={styles.permissionNoticeText}>
+                💡 If you can only see limited contacts, tap the "?" button for help accessing all your contacts
+              </Text>
+            </View>
+          )}
+
           {emergencyContacts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No emergency contacts added yet</Text>
               <Text style={styles.emptyStateSubtext}>
-                Tap "Add Contact" to select from your full contacts list
+                Tap "Add Contact" to select from your contacts
               </Text>
             </View>
           ) : (
@@ -240,6 +325,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -250,6 +340,19 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 16,
     lineHeight: 20,
+  },
+  permissionNotice: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  permissionNoticeText: {
+    fontSize: 13,
+    color: '#92400e',
+    lineHeight: 18,
   },
   inputGroup: {
     marginBottom: 16,
@@ -269,6 +372,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     color: '#1e293b',
+  },
+  helpButton: {
+    backgroundColor: '#6b7280',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   addButton: {
     backgroundColor: '#3b82f6',
