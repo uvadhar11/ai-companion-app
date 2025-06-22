@@ -17,19 +17,21 @@ elif VAPI_PHONE_ID is None:
 else:   
     vapi_client = Vapi(token=VAPI_API_KEY)
 
-
 voice_agents = {"Dad": "chris", "Mom": "jennifer", "Friend": "friend"}
 persona = voice_agents["Dad"]
 
 convo_context = voice_setup.change_convo_context(persona)  #changes conversation context based on voice_agent.
 
+
 safe_phrase = "Do you want to get pizza?"
-phone_number = "+12799778354"
+phone_number = "+12095020198"
 
 
 
 if __name__ == "__main__":
+    #existing_object = voice_setup.get_existing_agent_object(vapi_client, PERMENANT_ID)
+
     existing_id = voice_setup.get_existing_agent_id(vapi_client, PERMENANT_ID)
-    existing_object = voice_setup.get_existing_agent_object(vapi_client, PERMENANT_ID)
     voice_assistant = voice_setup.update_agent(convo_context, persona, vapi_client, existing_id, safe_phrase, phone_number)
+
     #voice_assistant = voice_setup.update_call_transfer_number(vapi_client, existing_id, phone_number)

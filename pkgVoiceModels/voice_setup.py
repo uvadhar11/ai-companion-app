@@ -17,8 +17,6 @@ def get_existing_agent_object(vapi_client, PERMANENT_ID):
     except Exception:
         print(f"Error returning assistant object")
 
-
-
 def change_convo_context(selected_persona):
     convo_context_to_use = conversation_contexts.PERSONAS.get(
     selected_persona.lower(), # Use .lower() for case-insensitive lookup
@@ -33,7 +31,7 @@ def update_agent(convo_context, voice_agent, vapi_client, existing_id, safe_phra
             "messages": [
                 {
                     "role": "system",
-                    "content": f"""{convo_context} if you hear {safe_phrase} use the 'transferCall' tool """ 
+                    "content": f"""{convo_context} if you hear {safe_phrase} use the 'transferCall' tool.""" 
                 }
             ], 
             "tools": [ 
@@ -42,9 +40,11 @@ def update_agent(convo_context, voice_agent, vapi_client, existing_id, safe_phra
                     "destinations": [
                         {"type": "number", "number": phone_number}
                     ]
-                }
+                },
             ]
         },
+
+        "metadata": {"context":convo_context, "safe_word":safe_phrase},
         
         "voice": { 
             "provider": "playht",
@@ -59,5 +59,6 @@ def update_agent(convo_context, voice_agent, vapi_client, existing_id, safe_phra
         existing_id,
         **updated_assistant_config # Unpack the dictionary of changes
     )
+
     print(f"Assistant {voice_assistant.id} updated successfully.") # <--- MOVED TO EXECUTE
     return voice_assistant # <--- Return after printing
