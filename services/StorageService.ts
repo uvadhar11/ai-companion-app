@@ -123,7 +123,6 @@ class StorageService {
       ...data.companionCustomizations,
       [companionId]: updatedCustomization,
     };
-
     await this.updateData({ companionCustomizations: updatedCustomizations });
     return updatedCustomization;
   }
