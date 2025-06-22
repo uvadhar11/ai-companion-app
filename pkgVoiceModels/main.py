@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from vapi import Vapi 
 import voice_setup
 import make_call
+from conversation_contexts import PERSONAS
 
 load_dotenv() 
 
@@ -15,18 +16,20 @@ UMANG_PHONE_ID = os.getenv("UMANG_PHONE_ID")
 UMANG_PERMENANT_ID = os.getenv("UMANG_PERMENANT_ID")
 
 
-
-all_voices = {"mom": "jennifer",    # Mom will use voice "jennifer from vapi dashboard.
-              "dad": "chris",       # Dad will use voice "chris" from vapi dashboard.
+all_voices = {"mom": "jennifer",
+              "dad": "chris",
               "female_friend": "melissa",
               "male_friend": "elliot",
-              } #female_friend will use voice "Melissa" from vapi dashboard.
+              } 
 
-voice = "female_friend"   #pick voice here. Must be a dictionary key that exists above in 'all_voices'
 
-voice_agent = all_voices[voice]     
+voice = "mom"   #pick voice here. Must be a dictionary key that exists above in 'all_voices'
+
+#voice_agent = all_voices[voice]     
+voice_agent = all_voices.get(voice)
+
 conversation_context = voice_setup.change_convo_context(voice)
-print(conversation_context)
+#print(conversation_context)
 
 #persona = voice_agents["Dad"]
 #convo_context = voice_setup.change_convo_context(persona)  #changes conversation context based on voice_agent.
@@ -35,19 +38,20 @@ safe_phrase = "Do you want to get pizza?"
 phone_number = "+12095020198"
 umang_phone_number = "+12799778354"
 
-
+    
 if __name__ == "__main__":
-    #vapi_client = Vapi(token=VAPI_API_KEY)  #creates a vapi client object using vapi token.
+    
+    # Create a vapi client object using vapi token.
+    vapi_client = Vapi(token=UMANG_API_KEY) 
 
-    vapi_client = Vapi(token=UMANG_API_KEY)  #creates a vapi client object using vapi token.
-
-    #retrieves the entire vapi object in json format.
+    # Retrieve the entire vapi object in json format.
     vapi_assistant_object = voice_setup.get_existing_agent_object(vapi_client, UMANG_PERMENANT_ID)
 
-    #finds an existing vapi assistant from the vapi token in .env file.
+    # Find an existing vapi assistant from the vapi token in .env file.
     vapi_assistant_id = voice_setup.get_existing_agent_id(vapi_client, UMANG_PERMENANT_ID)
 
-    #updates the vapi assistants conversation context, persona (voice), safe phrase, and emergency contact phone number.
+
+    # Update the vapi assistants conversation context, persona (voice), safe phrase, and emergency contact phone number.
     voice_assistant = voice_setup.update_agent(conversation_context, voice_agent, vapi_client, vapi_assistant_id, safe_phrase, phone_number)
 
     #THE LINE BELOW IS WORKING CODE TO MAKE OUTGOING CALLS, WE HAVE 9 LEFT, USE SPARINGLY

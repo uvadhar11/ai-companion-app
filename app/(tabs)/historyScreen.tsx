@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const callHistory = [
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 72,
     height: 72,
-    borderRadius: 16,
+    borderRadius: 100,
     marginRight: 16,
   },
   cardContent: {

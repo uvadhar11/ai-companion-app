@@ -1,20 +1,20 @@
 import { companions } from '@/app/(tabs)/companionScreen';
-import { useLocalSearchParams, useNavigation, router } from 'expo-router';
-import { useLayoutEffect, useState } from 'react';
-import { 
-  Image, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput, 
-  Modal, 
-  Alert,
-  ActivityIndicator 
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useCompanionCustomization } from '@/hooks/useStorage';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLayoutEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function CustomizeCompanionScreen() {
   const { id } = useLocalSearchParams();
@@ -55,11 +55,19 @@ export default function CustomizeCompanionScreen() {
   const handleSave = async () => {
     if (!editingField) return;
     
+    //console.log("handleSave called for field:", editingField);
     setSaving(true);
     try {
       await updateCustomization({
         [editingField]: editValue.trim(),
       });
+
+      // Send personal context to backend
+      if (editingField === 'personalContext') {
+        //console.log("Calling sendContextToBackend...");
+        await sendContextToBackend(editValue.trim());
+      }
+
       setEditingField(null);
       setEditValue('');
       Alert.alert('Success', 'Changes saved successfully!');
@@ -67,6 +75,26 @@ export default function CustomizeCompanionScreen() {
       Alert.alert('Error', 'Failed to save changes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendContextToBackend = async (context: string) => {
+    console.log("Sending personal context to backend:", context);
+    try {
+      const res = await fetch("https://df30-2607-f140-6000-8008-ac27-61da-5c45-d378.ngrok-free.app/update_context", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          context
+        }),
+      });
+
+      const data = await res.json();
+      //console.log("Backend response:", data);
+    } catch (err) {
+      console.error("Error sending context to backend:", err);
     }
   };
 
