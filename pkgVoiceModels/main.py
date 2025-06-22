@@ -47,7 +47,7 @@ if __name__ == "__main__":
     #vapi_assistant_object = voice_setup.get_existing_agent_object(vapi_client, UMANG_PERMENANT_ID)
 
     #finds an existing vapi assistant from the vapi token in .env file.
-    vapi_assistant_id = voice_setup.get_existing_agent_id(vapi_client, PERMENANT_ID)
+    vapi_assistant_id = voice_setup.get_existing_agent_id(vapi_client, UMANG_PERMENANT_ID)
 
     #updates the vapi assistants conversation context, persona (voice), safe phrase, and emergency contact phone number.
     voice_assistant = voice_setup.update_agent(conversation_context, voice_agent, vapi_client, vapi_assistant_id, safe_phrase, umang_phone_number)
