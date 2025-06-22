@@ -98,19 +98,47 @@ export default function CompanionSelectionScreen({
     );
   };
 
-  const handleCall = (type: "outgoing" | "incoming") => {
+  const handleCall = async (type: "outgoing" | "incoming") => {
     const companion = companions.find((c) => c.id === selectedCompanion);
     if (companion) {
-      console.log(
-        `${type === "outgoing" ? "Calling" : "Receiving call from"} ${
-          companion.name
-        }`
-      );
-      
-    const phoneURL = `tel:"+19253324353"`;
-    Linking.openURL(phoneURL).catch((err) =>
-    console.error("Failed to open dialer", err)
-  );
+        console.log(
+            `${type === "outgoing" ? "Calling" : "Receiving call from"} ${
+                companion.name
+            }`
+        );
+
+        // Assuming 'incoming' type means the Vapi agent calls the user
+        if (type === "incoming") {
+            const userPhoneNumber = "+12799778354"; // Replace with the actual user's phone number
+            try {
+                const response = await fetch('http://localhost:5000/outbound_call', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ number: userPhoneNumber }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('Outbound call initiated successfully:', data.message);
+                    // You can display a message to the user, e.g., "Please wait, the agent is calling you..."
+                } else {
+                    console.error('Failed to initiate outbound call:', data.error);
+                    // Handle error, show an error message to the user
+                }
+            } catch (error) {
+                console.error('Network error or other issue:', error);
+                // Handle network errors
+            }
+        } else {
+            // Keep your existing Linking.openURL for "outgoing" if that's the desired behavior
+            const phoneURL = `tel:"+19253324353"`; // This seems to be a hardcoded number for outgoing calls
+            Linking.openURL(phoneURL).catch((err) =>
+                console.error("Failed to open dialer", err)
+            );
+        }
     }
   };
 
