@@ -1,3 +1,7 @@
+import { HelloWave } from "@/components/HelloWave";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Image } from "expo-image";
 "use client";
 
 import { useState, useEffect, useRef } from "react";
