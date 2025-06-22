@@ -47,8 +47,6 @@ def outbound_call():
         return {'error': 'No phone number provided'}, 400
     print("Received phone number:", number)
     try:
-        vapi_client = Vapi(token=UMANG_API_KEY)
-
         vapi_assistant_id = voice_setup.get_existing_agent_id(
             vapi_client, PERMENANT_ID)
 
@@ -62,3 +60,4 @@ def outbound_call():
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
+    vapi_client = Vapi(token=UMANG_API_KEY)
