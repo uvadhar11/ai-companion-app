@@ -39,19 +39,19 @@ safe_phrase = "Do you want to get pizza?"
 phone_number = "+12095020198"
 umang_phone_number = "+12799778354"
 
-
 if __name__ == "__main__":
     #creates a vapi client object using vapi token.
     vapi_client = Vapi(token=UMANG_API_KEY)  
 
     #retrieves the entire vapi object in json format.
-    vapi_assistant_object = voice_setup.get_existing_agent_object(vapi_client, UMANG_PERMENANT_ID)
+    #vapi_assistant_object = voice_setup.get_existing_agent_object(vapi_client, UMANG_PERMENANT_ID)
 
     #finds an existing vapi assistant from the vapi token in .env file.
-    vapi_assistant_id = voice_setup.get_existing_agent_id(vapi_client, UMANG_PERMENANT_ID)
+    vapi_assistant_id = voice_setup.get_existing_agent_id(vapi_client, PERMENANT_ID)
 
     #updates the vapi assistants conversation context, persona (voice), safe phrase, and emergency contact phone number.
-    voice_assistant = voice_setup.update_agent(conversation_context, voice_agent, vapi_client, vapi_assistant_id, safe_phrase, phone_number)
+    voice_assistant = voice_setup.update_agent(conversation_context, voice_agent, vapi_client, vapi_assistant_id, safe_phrase, umang_phone_number)
 
     #THE LINE BELOW IS WORKING CODE TO MAKE OUTGOING CALLS, WE HAVE 9 LEFT, USE SPARINGLY
     #make_call.make_outbound_call(vapi_client, vapi_assistant_id, umang_phone_number, UMANG_PHONE_ID)
+
