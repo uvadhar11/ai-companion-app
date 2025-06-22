@@ -1,12 +1,11 @@
-import { Tabs } from "expo-router";
-import React from "react";
-import { Platform } from "react-native";
-
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -38,24 +37,35 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="contacts"
+        name="companionScreen"
         options={{
-          title: "Contacts",
+          title: "Call AI",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="phone.fill" color={color} />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="companionScreen"
+        name="historyScreen"
         options={{
-          title: "AI Companions",
+          title: "History",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="clock.fill" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profileScreen"
+        options={{
+          title: "Profile",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.fill" color={color} />
           ),
         }}
       />
+
     </Tabs>
   );
 }

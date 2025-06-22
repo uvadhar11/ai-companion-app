@@ -1,15 +1,16 @@
 "use client";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { router } from 'expo-router';
 import { useState } from "react";
-import { ImageSourcePropType } from 'react-native';
+import { ImageSourcePropType, StyleSheet } from 'react-native';
 
 import {
   Image,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 interface Companion {
@@ -31,6 +32,12 @@ const imageMap = {
   sophie: require('@/assets/images/woman.png'),
 };
 
+const customizeCompanion = (companionId: string) => {
+  router.push({
+    pathname: '/customize/[id]',
+    params: { id: companionId },
+  });
+};
 
 const companions: Companion[] = [
   {
@@ -117,10 +124,22 @@ export default function CompanionSelectionScreen({
                 style={styles.companionImage}
               />
               <View style={styles.companionInfo}>
-                <Text style={styles.companionName}>{companion.name}</Text>
+
+                <View style={styles.nameRow}>
+                  <Text style={styles.companionName}>{companion.name}</Text>
+                  <TouchableOpacity onPress={() => customizeCompanion(companion.id)}>
+                    <IconSymbol
+                      name="ellipsis"
+                      size={20}
+                      color="#6b7280"
+                    />
+                  </TouchableOpacity>
+                </View>
+                
                 <Text style={styles.companionDescription}>
                   {companion.description}
                 </Text>
+
                 <Text style={styles.companionPersonality}>
                   {companion.personality}
                 </Text>
@@ -224,6 +243,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginRight: 16,
     backgroundColor: "#e5e7eb",
+  },
+  nameRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
   },
   companionInfo: {
     flex: 1,
