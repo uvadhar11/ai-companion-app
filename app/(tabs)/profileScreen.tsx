@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -47,6 +47,46 @@ const ProfileScreen = () => {
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
+
+  // - Added auto-save state management
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  // - Added debounced auto-save function (500ms delay)
+  const autoSaveProfile = async (nameValue: string, phoneValue: string) => {
+    // Clear existing timeout to prevent multiple saves
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (500ms delay)
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setAutoSaving(true);
+        await updateProfile({
+          name: nameValue.trim(),
+          phone: phoneValue.trim(),
+        });
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 500);
+  };
+
+  // - Modified input handlers to trigger auto-save
+  const handleNameChange = (value: string) => {
+    setName(value);
+    autoSaveProfile(value, phone); // AUTO-SAVE TRIGGER
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    autoSaveProfile(name, value); // AUTO-SAVE TRIGGER
+  };
 
   useEffect(() => {
     // Filter contacts based on search query
@@ -901,3 +941,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 });
+function updateProfile(arg0: { name: string; phone: string }) {
+  throw new Error("Function not implemented.");
+}
