@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { ImageSourcePropType } from 'react-native';
 
@@ -129,50 +128,44 @@ export default function CompanionSelectionScreen({
             </TouchableOpacity>
           ))}
         </View>
-
-        {selectedCompanion && selectedCompanionData && (
-          <View style={styles.callButtonsContainer}>
-            <TouchableOpacity
-              style={styles.callButton}
-              onPress={() => handleCall("outgoing")}
-            >
-              <View style={styles.callIcon}>
-                <Text style={styles.callIconText}>📞</Text>
-              </View>
-              <Text style={styles.callButtonText}>
-                Call {selectedCompanionData.name}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.callButton}
-              onPress={() => handleCall("incoming")}
-            >
-              <View style={styles.callIcon}>
-                <Text style={styles.callIconText}>📞</Text>
-              </View>
-              <Text style={styles.callButtonText}>
-                {selectedCompanionData.name} calls you
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
+      {selectedCompanion && selectedCompanionData && (
+        <View style={styles.callButtonsContainer}>
+          <TouchableOpacity
+            style={styles.callButton}
+            onPress={() => handleCall("outgoing")}
+          >
+            <View style={styles.callIcon}>
+              <Image
+                source={require("@/assets/images/sendCallImage.png")}
+                style={styles.callIconImage}
+                resizeMode="contain"
+              />
+            </View>
 
-      {/* <View style={styles.bottomNavigation}>
-        <TouchableOpacity style={styles.navItem} onPress={onNavigateBack}>
-          <Text style={styles.navText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
-          <Text style={[styles.navText, styles.activeNavText]}>Call AI</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navText}>History</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View> */}
+            <Text style={styles.callButtonText}>
+              Call {selectedCompanionData.name}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.callButton}
+            onPress={() => handleCall("incoming")}
+          >
+            <View style={styles.callIcon}>
+              <Image
+                source={require("@/assets/images/getCallImage.png")}
+                style={styles.callIconImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            <Text style={styles.callButtonText}>
+              {selectedCompanionData.name} calls you
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -256,8 +249,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     paddingHorizontal: 20,
-    paddingTop: 30,
+    paddingTop: 20,
     gap: 20,
+    paddingBottom: 55,
   },
   callButton: {
     alignItems: "center",
@@ -280,9 +274,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  callIconText: {
-    fontSize: 24,
-    color: "white",
+  callIconImage: {
+    width: 60,
+    height: 60,
   },
   callButtonText: {
     fontSize: 14,
