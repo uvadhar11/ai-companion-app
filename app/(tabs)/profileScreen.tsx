@@ -15,7 +15,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
-import { Search, User, Phone, X, Plus, UserPlus, Settings } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Contact {
   id: string;
@@ -260,7 +260,7 @@ const ProfileScreen = () => {
     <View style={styles.contactItem}>
       <View style={styles.contactItemHeader}>
         <View style={styles.contactAvatar}>
-          <User size={20} color="#6b7280" />
+          <Ionicons name="person" size={20} color="#6b7280" />
         </View>
         <View style={styles.contactItemInfo}>
           <Text style={styles.contactItemName}>{item.name}</Text>
@@ -277,9 +277,9 @@ const ProfileScreen = () => {
             style={styles.phoneNumberItem}
             onPress={() => addEmergencyContact(item, phoneNumber)}
           >
-            <Phone size={16} color="#6b7280" />
+            <Ionicons name="call" size={16} color="#6b7280" />
             <Text style={styles.phoneNumberText}>{phoneNumber}</Text>
-            <Plus size={16} color="#3b82f6" />
+            <Ionicons name="add" size={16} color="#3b82f6" />
           </TouchableOpacity>
         ))}
       </View>
@@ -323,7 +323,7 @@ const ProfileScreen = () => {
               style={styles.helpButton}
               onPress={showPermissionHelp}
             >
-              <Settings size={16} color="#6b7280" />
+              <Ionicons name="settings" size={16} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
@@ -348,7 +348,7 @@ const ProfileScreen = () => {
               {loadingContacts ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <User size={16} color="white" />
+                <Ionicons name="people" size={16} color="white" />
               )}
               <Text style={styles.addButtonText}>
                 {loadingContacts ? 'Loading...' : 'From Contacts'}
@@ -359,14 +359,14 @@ const ProfileScreen = () => {
               style={[styles.addButton, styles.secondaryButton]}
               onPress={() => setShowManualModal(true)}
             >
-              <UserPlus size={16} color="#3b82f6" />
+              <Ionicons name="person-add" size={16} color="#3b82f6" />
               <Text style={styles.addButtonTextSecondary}>Add Manually</Text>
             </TouchableOpacity>
           </View>
 
           {emergencyContacts.length === 0 ? (
             <View style={styles.emptyState}>
-              <User size={48} color="#d1d5db" />
+              <Ionicons name="people-outline" size={48} color="#d1d5db" />
               <Text style={styles.emptyStateText}>No emergency contacts added yet</Text>
               <Text style={styles.emptyStateSubtext}>
                 Choose from your contacts or add manually
@@ -378,12 +378,12 @@ const ProfileScreen = () => {
                 <View key={contact.id} style={styles.contactCard}>
                   <View style={styles.contactCardHeader}>
                     <View style={styles.contactCardAvatar}>
-                      <User size={20} color="#3b82f6" />
+                      <Ionicons name="person" size={20} color="#3b82f6" />
                     </View>
                     <View style={styles.contactCardInfo}>
                       <Text style={styles.contactCardName}>{contact.name}</Text>
                       <View style={styles.contactCardPhone}>
-                        <Phone size={14} color="#6b7280" />
+                        <Ionicons name="call" size={14} color="#6b7280" />
                         <Text style={styles.contactCardPhoneText}>{contact.phoneNumber}</Text>
                       </View>
                     </View>
@@ -391,7 +391,7 @@ const ProfileScreen = () => {
                       style={styles.removeButton}
                       onPress={() => removeEmergencyContact(contact.id)}
                     >
-                      <X size={16} color="#ef4444" />
+                      <Ionicons name="close" size={16} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -427,12 +427,12 @@ const ProfileScreen = () => {
                 setSearchQuery('');
               }}
             >
-              <X size={24} color="#6b7280" />
+              <Ionicons name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchContainer}>
-            <Search size={20} color="#6b7280" />
+            <Ionicons name="search" size={20} color="#6b7280" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search contacts..."
@@ -442,7 +442,7 @@ const ProfileScreen = () => {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <X size={20} color="#6b7280" />
+                <Ionicons name="close" size={20} color="#6b7280" />
               </TouchableOpacity>
             )}
           </View>
@@ -455,7 +455,7 @@ const ProfileScreen = () => {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptySearchState}>
-                <Search size={48} color="#d1d5db" />
+                <Ionicons name="search-outline" size={48} color="#d1d5db" />
                 <Text style={styles.emptySearchText}>
                   {searchQuery ? 'No contacts found' : 'No contacts available'}
                 </Text>
@@ -485,7 +485,7 @@ const ProfileScreen = () => {
                 setManualPhone('');
               }}
             >
-              <X size={24} color="#6b7280" />
+              <Ionicons name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
