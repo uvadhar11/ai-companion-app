@@ -671,10 +671,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: "white",
+    backgroundColor: "#f8f9fa", // Match the container background
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-    position: "relative", // Add this
+    position: "relative",
   },
   backButton: {
     padding: 5,
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#1f2937",
-    position: "absolute", // Add this
+    position: "absolute",
     left: 0,
     right: 0,
     textAlign: "center",

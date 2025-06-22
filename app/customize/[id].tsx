@@ -1,7 +1,7 @@
 import { companions } from '@/app/(tabs)/companionScreen';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { useLayoutEffect } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CustomizeCompanionScreen() {
   const { id } = useLocalSearchParams();
@@ -24,15 +24,31 @@ export default function CustomizeCompanionScreen() {
   if (!companion) return <Text>Companion not found</Text>;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Image source={companion.image} style={styles.avatar} />
-      <Text style={styles.name}>{companion.name}</Text>
+    <View style={styles.container}>
+      {/* Custom back button */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {(id as string).charAt(0).toUpperCase() + (id as string).slice(1)}
+        </Text>
+        <View style={{ width: 60 }} />
+      </View>
 
-      <Section title="Description" content={companion.description} />
-      <Section title="Safe word" content={`"${companion.safeWord}"`} editable />
-      <Section title="Emergency contact" content={companion.emergencyContact} editable />
-      <Section title="Personal context" content={companion.personalContext} editable />
-    </ScrollView>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Image source={companion.image} style={styles.avatar} />
+        <Text style={styles.name}>{companion.name}</Text>
+
+        <Section title="Description" content={companion.description} />
+        <Section title="Safe word" content={`"${companion.safeWord}"`} editable />
+        <Section title="Emergency contact" content={companion.emergencyContact} editable />
+        <Section title="Personal context" content={companion.personalContext} editable />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -50,22 +66,34 @@ function Section({ title, content, editable }: { title: string; content: string;
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 20,
     backgroundColor: '#f1f5f9',
   },
   backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    backgroundColor: '#0c2450',
-    padding: 8,
-    borderRadius: 8,
+    padding: 5,
   },
-  backArrow: {
-    color: 'white',
-    fontSize: 20,
+  backButtonText: {
+    color: '#1e40af',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   avatar: {
     width: 100,

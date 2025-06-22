@@ -43,24 +43,35 @@ const ProfileScreen = () => {
     if (!hasPermission) return;
 
     try {
+      // Get all contacts every time to allow selecting from the full list
       const { data } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
       });
 
       if (data.length > 0) {
-        // For simplicity, we'll show an alert with the first few contacts
-        // In a real app, you'd want to show a proper contact picker
-        const contactOptions = data.slice(0, 5).map((contact, index) => {
+        // Filter out contacts that don't have phone numbers
+        const contactsWithPhones = data.filter(contact => 
+          contact.phoneNumbers && contact.phoneNumbers.length > 0
+        );
+
+        if (contactsWithPhones.length === 0) {
+          Alert.alert('No Contacts', 'No contacts with phone numbers found');
+          return;
+        }
+
+        // Show up to 10 contacts for selection
+        const contactsToShow = contactsWithPhones.slice(0, 10);
+        const contactOptions = contactsToShow.map((contact, index) => {
           const phoneNumber = contact.phoneNumbers?.[0]?.number || 'No phone';
           return `${index + 1}. ${contact.name} - ${phoneNumber}`;
         }).join('\n');
 
         Alert.alert(
           'Select Contact',
-          `Choose a contact:\n\n${contactOptions}`,
+          `Choose a contact to add as emergency contact:\n\n${contactOptions}`,
           [
             { text: 'Cancel', style: 'cancel' },
-            ...data.slice(0, 5).map((contact, index) => ({
+            ...contactsToShow.map((contact, index) => ({
               text: `${index + 1}`,
               onPress: () => addEmergencyContact(contact)
             }))
@@ -82,15 +93,39 @@ const ProfileScreen = () => {
       phoneNumber: phoneNumber
     };
 
+    // Check if contact is already added
+    const isAlreadyAdded = emergencyContacts.some(
+      existingContact => existingContact.id === newContact.id
+    );
+
+    if (isAlreadyAdded) {
+      Alert.alert('Already Added', 'This contact is already in your emergency contacts list');
+      return;
+    }
+
     if (emergencyContacts.length < 3) {
       setEmergencyContacts([...emergencyContacts, newContact]);
+      Alert.alert('Success', `${newContact.name} has been added as an emergency contact`);
     } else {
       Alert.alert('Limit Reached', 'You can only add up to 3 emergency contacts');
     }
   };
 
   const removeEmergencyContact = (id: string) => {
-    setEmergencyContacts(emergencyContacts.filter(contact => contact.id !== id));
+    Alert.alert(
+      'Remove Contact',
+      'Are you sure you want to remove this emergency contact?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            setEmergencyContacts(emergencyContacts.filter(contact => contact.id !== id));
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -134,11 +169,15 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.sectionDescription}>
+            Add up to 3 emergency contacts who can be reached in case of emergency
+          </Text>
+
           {emergencyContacts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No emergency contacts added yet</Text>
               <Text style={styles.emptyStateSubtext}>
-                Tap "Add Contact" to select from your contacts
+                Tap "Add Contact" to select from your full contacts list
               </Text>
             </View>
           ) : (
@@ -158,6 +197,12 @@ const ProfileScreen = () => {
                 </TouchableOpacity>
               </View>
             ))
+          )}
+
+          {emergencyContacts.length > 0 && emergencyContacts.length < 3 && (
+            <Text style={styles.helperText}>
+              You can add {3 - emergencyContacts.length} more emergency contact{3 - emergencyContacts.length !== 1 ? 's' : ''}
+            </Text>
           )}
         </View>
 
@@ -193,12 +238,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#0f172a',
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+    lineHeight: 20,
   },
   inputGroup: {
     marginBottom: 16,
@@ -292,6 +343,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
   },
   saveButton: {
     backgroundColor: '#10b981',
