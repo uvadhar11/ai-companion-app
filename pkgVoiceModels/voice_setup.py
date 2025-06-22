@@ -1,8 +1,7 @@
 import conversation_contexts
 
-def get_existing_agent(vapi_client, PERMANENT_ID):
+def get_existing_agent_id(vapi_client, PERMANENT_ID):
     assistant_id_to_use = None
-    
     # Check if a permanent assistant ID is defined
     if PERMANENT_ID:
             # Attempt to retrieve the existing assistant
@@ -10,6 +9,15 @@ def get_existing_agent(vapi_client, PERMANENT_ID):
             print(f"Found existing assistant with ID: {existing_assistant.id}. Using existing ID")
             assistant_id_to_use = existing_assistant.id
             return assistant_id_to_use
+
+def get_existing_agent_object(vapi_client, PERMANENT_ID):
+    try:
+        print(vapi_client.assistants.get(PERMANENT_ID))
+        return vapi_client.assistants.get(PERMANENT_ID)
+    except Exception:
+        print(f"Error returning assistant object")
+
+
 
 def change_convo_context(selected_persona):
     convo_context_to_use = conversation_contexts.PERSONAS.get(

@@ -29,7 +29,7 @@ phone_number = "+12799778354"
 
 
 if __name__ == "__main__":
-    existing_id = voice_setup.get_existing_agent(vapi_client, PERMENANT_ID)
-
+    existing_id = voice_setup.get_existing_agent_id(vapi_client, PERMENANT_ID)
+    existing_object = voice_setup.get_existing_agent_object(vapi_client, PERMENANT_ID)
     voice_assistant = voice_setup.update_agent(convo_context, persona, vapi_client, existing_id, safe_phrase, phone_number)
     #voice_assistant = voice_setup.update_call_transfer_number(vapi_client, existing_id, phone_number)
