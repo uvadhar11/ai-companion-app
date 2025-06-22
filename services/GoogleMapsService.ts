@@ -1,17 +1,17 @@
 // Google Maps API service functions
 export class GoogleMapsService {
-  private static apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  //   private static apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  static setApiKey(key: string) {
-    this.apiKey = key;
-  }
+  //   static setApiKey(key: string) {
+  //     this.apiKey = key;
+  //   }
 
   static async geocodeAddress(address: string) {
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
           address
-        )}&key=${this.apiKey}`
+        )}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
       );
       const data = await response.json();
 
@@ -34,7 +34,7 @@ export class GoogleMapsService {
   static async reverseGeocode(latitude: number, longitude: number) {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${this.apiKey}`
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
       );
       const data = await response.json();
 
@@ -58,7 +58,7 @@ export class GoogleMapsService {
     avoidHighways = false
   ) {
     try {
-      let url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=${mode}&key=${this.apiKey}`;
+      let url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=${mode}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
       if (alternatives) url += "&alternatives=true";
       if (avoidTolls) url += "&avoid=tolls";
@@ -94,7 +94,7 @@ export class GoogleMapsService {
     try {
       let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
         input
-      )}&key=${this.apiKey}`;
+      )}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
       if (location) {
         url += `&location=${location.latitude},${location.longitude}&radius=50000`;

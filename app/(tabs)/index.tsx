@@ -12,6 +12,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  FlatList,
+  Keyboard,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
@@ -19,8 +21,7 @@ import * as Location from "expo-location";
 const { width, height } = Dimensions.get("window");
 
 // You'll need to get this from Google Cloud Console
-const GOOGLE_MAPS_API_KEY =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE";
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 interface MapScreenProps {
   onNavigateBack: () => void;
@@ -46,6 +47,15 @@ interface RouteInfo {
   };
 }
 
+interface PlacePrediction {
+  place_id: string;
+  description: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
 export default function MapScreen({ onNavigateBack }: MapScreenProps) {
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
@@ -61,11 +71,28 @@ export default function MapScreen({ onNavigateBack }: MapScreenProps) {
   const [loading, setLoading] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
+  const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [predictionLoading, setPredictionLoading] = useState(false);
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     getCurrentLocation();
   }, []);
+
+  // Debounced autocomplete search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (destination.length > 2) {
+        getPlacePredictions(destination);
+      } else {
+        setPredictions([]);
+        setShowPredictions(false);
+      }
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [destination]);
 
   const getCurrentLocation = async () => {
     try {
@@ -92,6 +119,79 @@ export default function MapScreen({ onNavigateBack }: MapScreenProps) {
       console.error("Location error:", error);
     } finally {
       setLocationLoading(false);
+    }
+  };
+
+  const getPlacePredictions = async (input: string) => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      return;
+    }
+
+    try {
+      setPredictionLoading(true);
+      let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+        input
+      )}&key=${GOOGLE_MAPS_API_KEY}`;
+
+      // Add location bias if current location is available
+      if (currentLocation) {
+        url += `&location=${currentLocation.latitude},${currentLocation.longitude}&radius=50000`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === "OK") {
+        setPredictions(data.predictions);
+        setShowPredictions(true);
+      } else {
+        setPredictions([]);
+        setShowPredictions(false);
+      }
+    } catch (error) {
+      console.error("Places API error:", error);
+      setPredictions([]);
+      setShowPredictions(false);
+    } finally {
+      setPredictionLoading(false);
+    }
+  };
+
+  const selectPrediction = async (prediction: PlacePrediction) => {
+    setDestination(prediction.description);
+    setShowPredictions(false);
+    setPredictions([]);
+    Keyboard.dismiss();
+
+    // Get place details to get coordinates
+    try {
+      const coords = await getPlaceDetails(prediction.place_id);
+      if (coords) {
+        setDestinationCoords(coords);
+      }
+    } catch (error) {
+      console.error("Error getting place details:", error);
+    }
+  };
+
+  const getPlaceDetails = async (placeId: string) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+
+      if (data.status === "OK" && data.result.geometry) {
+        const location = data.result.geometry.location;
+        return {
+          latitude: location.lat,
+          longitude: location.lng,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Place details error:", error);
+      return null;
     }
   };
 
@@ -128,7 +228,7 @@ export default function MapScreen({ onNavigateBack }: MapScreenProps) {
       return;
     }
 
-    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === "YOUR_API_KEY_HERE") {
+    if (!GOOGLE_MAPS_API_KEY) {
       Alert.alert(
         "API Key Required",
         "Please add your Google Maps API key to use real navigation. Check the console for setup instructions."
@@ -142,7 +242,7 @@ export default function MapScreen({ onNavigateBack }: MapScreenProps) {
    - Maps JavaScript API
    - Directions API
    - Geocoding API
-   - Places API (optional)
+   - Places API
 4. Create credentials (API Key)
 5. Add your API key as environment variable:
    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
@@ -153,9 +253,15 @@ For development, you can also replace the API key directly in the code.
     }
 
     setLoading(true);
+    setShowPredictions(false);
     try {
-      const destCoords = await geocodeDestination(destination);
-      if (!destCoords) return;
+      let destCoords = destinationCoords;
+
+      // If we don't have coordinates yet, geocode the address
+      if (!destCoords) {
+        destCoords = await geocodeDestination(destination);
+        if (!destCoords) return;
+      }
 
       const route = await getGoogleDirections(
         currentLocation,
@@ -292,6 +398,8 @@ For development, you can also replace the API key directly in the code.
     setDestinationCoords(null);
     setRouteInfo(null);
     setShowDirections(false);
+    setShowPredictions(false);
+    setPredictions([]);
   };
 
   const getManeuverIcon = (maneuver: string): string => {
@@ -315,6 +423,25 @@ For development, you can also replace the API key directly in the code.
     return icons[maneuver] || "↑";
   };
 
+  const renderPrediction = ({ item }: { item: PlacePrediction }) => (
+    <TouchableOpacity
+      style={styles.predictionItem}
+      onPress={() => selectPrediction(item)}
+    >
+      <View style={styles.predictionIcon}>
+        <Text style={styles.predictionIconText}>📍</Text>
+      </View>
+      <View style={styles.predictionText}>
+        <Text style={styles.predictionMainText}>
+          {item.structured_formatting.main_text}
+        </Text>
+        <Text style={styles.predictionSecondaryText}>
+          {item.structured_formatting.secondary_text}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -331,14 +458,31 @@ For development, you can also replace the API key directly in the code.
       </View>
 
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Enter destination address..."
-          value={destination}
-          onChangeText={setDestination}
-          onSubmitEditing={getDirections}
-          returnKeyType="search"
-        />
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Enter destination address..."
+            value={destination}
+            onChangeText={(text) => {
+              setDestination(text);
+              if (text.length > 2) {
+                setShowPredictions(true);
+              }
+            }}
+            onSubmitEditing={getDirections}
+            returnKeyType="search"
+            onFocus={() => {
+              if (predictions.length > 0) {
+                setShowPredictions(true);
+              }
+            }}
+          />
+          {predictionLoading && (
+            <View style={styles.searchLoadingIndicator}>
+              <ActivityIndicator size="small" color="#6b7280" />
+            </View>
+          )}
+        </View>
         <TouchableOpacity
           style={styles.searchButton}
           onPress={getDirections}
@@ -351,6 +495,19 @@ For development, you can also replace the API key directly in the code.
           )}
         </TouchableOpacity>
       </View>
+
+      {showPredictions && predictions.length > 0 && (
+        <View style={styles.predictionsContainer}>
+          <FlatList
+            data={predictions}
+            renderItem={renderPrediction}
+            keyExtractor={(item) => item.place_id}
+            style={styles.predictionsList}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      )}
 
       <View style={styles.modeSelector}>
         <TouchableOpacity
@@ -401,6 +558,7 @@ For development, you can also replace the API key directly in the code.
             showsUserLocation={true}
             showsMyLocationButton={false}
             followsUserLocation={false}
+            onPress={() => setShowPredictions(false)}
           >
             <Marker
               coordinate={currentLocation}
@@ -531,9 +689,13 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     backgroundColor: "white",
     gap: 10,
+    zIndex: 1000,
+  },
+  searchInputContainer: {
+    flex: 1,
+    position: "relative",
   },
   searchInput: {
-    flex: 1,
     borderWidth: 1,
     borderColor: "#d1d5db",
     borderRadius: 8,
@@ -541,6 +703,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: "#f9fafb",
+    paddingRight: 40,
+  },
+  searchLoadingIndicator: {
+    position: "absolute",
+    right: 12,
+    top: 12,
   },
   searchButton: {
     backgroundColor: "#1e40af",
@@ -555,6 +723,61 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
     fontSize: 16,
+  },
+  predictionsContainer: {
+    backgroundColor: "white",
+    marginHorizontal: 20,
+    marginTop: -5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderTopWidth: 0,
+    maxHeight: 200,
+    zIndex: 999,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  predictionsList: {
+    maxHeight: 200,
+  },
+  predictionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  predictionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  predictionIconText: {
+    fontSize: 14,
+  },
+  predictionText: {
+    flex: 1,
+  },
+  predictionMainText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1f2937",
+    marginBottom: 2,
+  },
+  predictionSecondaryText: {
+    fontSize: 14,
+    color: "#6b7280",
   },
   modeSelector: {
     flexDirection: "row",
@@ -585,7 +808,9 @@ const styles = StyleSheet.create({
     color: "white",
   },
   mapContainer: {
-    flex: 1,
+    width: "100%",
+    height: "55%",
+    // flex: 1,
   },
   map: {
     flex: 1,
