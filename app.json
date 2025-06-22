@@ -40,6 +40,12 @@
         {
           "contactsPermission": "This app needs to access your contacts to let you select your emergency contacts."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CompanionAI to use your location for navigation."
+        }
       ]
     ],
     "experiments": {
