@@ -50,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="companionScreen"
         options={{
-          title: "Companions",
+          title: "AI Companions",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.fill" color={color} />
           ),
