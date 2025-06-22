@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -53,8 +53,10 @@ const ProfileScreen = () => {
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
 
-  // Saving state
-  const [saving, setSaving] = useState(false);
+  // Auto-save state
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize form with profile data
   useEffect(() => {
@@ -63,6 +65,51 @@ const ProfileScreen = () => {
       setPhone(profile.phone);
     }
   }, [profile]);
+
+  // Auto-save functionality
+  const autoSaveProfile = async (nameValue: string, phoneValue: string) => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (500ms delay)
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setAutoSaving(true);
+        await updateProfile({
+          name: nameValue.trim(),
+          phone: phoneValue.trim(),
+        });
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 500);
+  };
+
+  // Handle name change with auto-save
+  const handleNameChange = (value: string) => {
+    setName(value);
+    autoSaveProfile(value, phone);
+  };
+
+  // Handle phone change with auto-save
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    autoSaveProfile(name, value);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Filter contacts based on search query
@@ -291,21 +338,6 @@ const ProfileScreen = () => {
     );
   };
 
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    try {
-      await updateProfile({
-        name: name.trim(),
-        phone: phone.trim(),
-      });
-      Alert.alert("Success", "Profile saved successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to save profile");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const showPermissionHelp = () => {
     Alert.alert(
       "Contact Access Help",
@@ -359,6 +391,21 @@ const ProfileScreen = () => {
     </View>
   );
 
+  const formatLastSaved = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    
+    if (diffSeconds < 60) {
+      return 'Saved just now';
+    } else if (diffSeconds < 3600) {
+      const minutes = Math.floor(diffSeconds / 60);
+      return `Saved ${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    } else {
+      return `Saved at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+  };
+
   if (profileLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -389,14 +436,32 @@ const ProfileScreen = () => {
         <Text style={styles.title}>Profile</Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
+          <View style={styles.sectionHeaderWithStatus}>
+            <Text style={styles.sectionTitle}>Basic Information</Text>
+            <View style={styles.autoSaveStatus}>
+              {autoSaving && (
+                <View style={styles.savingIndicator}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text style={styles.savingText}>Saving...</Text>
+                </View>
+              )}
+              {!autoSaving && lastSaved && (
+                <Text style={styles.savedText}>{formatLastSaved(lastSaved)}</Text>
+              )}
+            </View>
+          </View>
+          
+          <Text style={styles.autoSaveNote}>
+            Changes are automatically saved as you type
+          </Text>
+          
           <View style={{ height: 16 }} />
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name</Text>
             <TextInput
               placeholder="Enter your name"
               value={name}
-              onChangeText={setName}
+              onChangeText={handleNameChange}
               style={styles.input}
               placeholderTextColor="#9ca3af"
             />
@@ -406,7 +471,7 @@ const ProfileScreen = () => {
             <TextInput
               placeholder="Enter your phone number"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={handlePhoneChange}
               style={styles.input}
               keyboardType="phone-pad"
               placeholderTextColor="#9ca3af"
@@ -510,18 +575,6 @@ const ProfileScreen = () => {
             </Text>
           )}
         </View>
-
-        <TouchableOpacity 
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
-          onPress={handleSaveProfile}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text style={styles.saveButtonText}>Save Profile</Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Contact Selection Modal */}
@@ -670,6 +723,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+  sectionHeaderWithStatus: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
@@ -680,6 +739,30 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginBottom: 16,
     lineHeight: 20,
+  },
+  autoSaveNote: {
+    fontSize: 12,
+    color: "#10b981",
+    fontStyle: "italic",
+    marginBottom: 8,
+  },
+  autoSaveStatus: {
+    alignItems: "flex-end",
+  },
+  savingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  savingText: {
+    fontSize: 12,
+    color: "#10b981",
+    fontWeight: "500",
+  },
+  savedText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontStyle: "italic",
   },
   permissionNotice: {
     backgroundColor: "#fef3c7",
