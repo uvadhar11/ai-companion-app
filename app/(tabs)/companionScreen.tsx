@@ -2,7 +2,7 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { router } from 'expo-router';
 import { useState } from "react";
-import { ImageSourcePropType, StyleSheet } from 'react-native';
+import { ImageSourcePropType, Linking, StyleSheet } from 'react-native';
 
 import {
   Image,
@@ -106,7 +106,11 @@ export default function CompanionSelectionScreen({
           companion.name
         }`
       );
-      // Handle call logic here
+      
+    const phoneURL = `tel:"+19253324353"`;
+    Linking.openURL(phoneURL).catch((err) =>
+    console.error("Failed to open dialer", err)
+  );
     }
   };
 
