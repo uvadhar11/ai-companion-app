@@ -19,6 +19,9 @@ interface Companion {
   description: string;
   personality: string;
   image: ImageSourcePropType;
+  safeWord: string;
+  emergencyContact: string;
+  personalContext: string;
 }
 
 interface CompanionSelectionScreenProps {
@@ -39,13 +42,16 @@ const customizeCompanion = (companionId: string) => {
   });
 };
 
-const companions: Companion[] = [
+export const companions: Companion[] = [
   {
     id: "mom",
     name: "Mom",
     description: "Soft-spoken, warm & calming.",
     personality: "She checks in on you and is here for you.",
     image: imageMap["mom"],
+    safeWord: "Do you want to order pizza?",
+    emergencyContact: "+1 (234) 456-8910",
+    personalContext: "Mom likes talking about her baking, our cat Mochi. She always asks about my day at school and my best friend Flor.",
   },
   {
     id: "dad",
@@ -53,6 +59,9 @@ const companions: Companion[] = [
     description: "Supportive & protective.",
     personality: "He makes sure you feel safe and never alone on the road.",
     image: imageMap["dad"],
+    safeWord: "Do you want to order pizza?",
+    emergencyContact: "+1 (234) 456-8910",
+    personalContext: "Dad likes talking about his home projects such as building a bookshelf. He walks our dog BooBoo every day at 5pm and talks about the dog a lot.",
   },
   {
     id: "sophie",
@@ -60,6 +69,9 @@ const companions: Companion[] = [
     description: "Chill & always down to chat.",
     personality: "She distracts you with fun topics and honest girl talk.",
     image: imageMap["sophie"],
+    safeWord: "Do you want to order pizza?",
+    emergencyContact: "+1 (234) 456-8910",
+    personalContext: "Sophie is my classmate for Intro to Computer Science. We hangout for boba once a week. She has my location on her phone.",
   },
   {
     id: "nick",
@@ -67,6 +79,9 @@ const companions: Companion[] = [
     description: "Relaxed, funny & keeps it light.",
     personality: "He talks about anything to help you feel more at ease.",
     image: imageMap["nick"],
+    safeWord: "Do you want to order pizza?",
+    emergencyContact: "+1 (234) 456-8910",
+    personalContext: "Nick and I play tennis together every Monday. We usually talk about the latest U.S. basketball match.",
   },
 ];
 
@@ -154,7 +169,7 @@ export default function CompanionSelectionScreen({
             style={styles.callButton}
             onPress={() => handleCall("outgoing")}
           >
-            <View style={styles.callIcon}>
+            <View>
               <Image
                 source={require("@/assets/images/sendCallImage.png")}
                 style={styles.callIconImage}
