@@ -16,12 +16,8 @@ import {
 } from "react-native";
 import * as Contacts from "expo-contacts";
 import { Ionicons } from "@expo/vector-icons";
-
-interface Contact {
-  id: string;
-  name: string;
-  phoneNumber: string;
-}
+import { useUserProfile } from "@/hooks/useStorage";
+import { Contact } from "@/types/storage";
 
 interface DeviceContact {
   id: string;
@@ -30,9 +26,18 @@ interface DeviceContact {
 }
 
 const ProfileScreen = () => {
+  const {
+    profile,
+    loading: profileLoading,
+    error: profileError,
+    updateProfile,
+    addEmergencyContact,
+    removeEmergencyContact,
+  } = useUserProfile();
+
+  // Local state for form inputs
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [emergencyContacts, setEmergencyContacts] = useState<Contact[]>([]);
   const [contactPermissionStatus, setContactPermissionStatus] =
     useState<string>("unknown");
 
@@ -47,6 +52,17 @@ const ProfileScreen = () => {
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
+
+  // Saving state
+  const [saving, setSaving] = useState(false);
+
+  // Initialize form with profile data
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setPhone(profile.phone);
+    }
+  }, [profile]);
 
   useEffect(() => {
     // Filter contacts based on search query
@@ -155,7 +171,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const addEmergencyContact = (contact: DeviceContact, phoneNumber: string) => {
+  const handleAddEmergencyContact = async (contact: DeviceContact, phoneNumber: string) => {
     const newContact: Contact = {
       id: `${contact.id}-${phoneNumber}`,
       name: contact.name,
@@ -163,7 +179,7 @@ const ProfileScreen = () => {
     };
 
     // Check if contact is already added
-    const isAlreadyAdded = emergencyContacts.some(
+    const isAlreadyAdded = profile?.emergencyContacts.some(
       (existingContact) =>
         existingContact.phoneNumber === newContact.phoneNumber
     );
@@ -176,14 +192,18 @@ const ProfileScreen = () => {
       return;
     }
 
-    if (emergencyContacts.length < 3) {
-      setEmergencyContacts([...emergencyContacts, newContact]);
-      setShowContactModal(false);
-      setSearchQuery("");
-      Alert.alert(
-        "Success",
-        `${newContact.name} has been added as an emergency contact`
-      );
+    if ((profile?.emergencyContacts.length || 0) < 3) {
+      try {
+        await addEmergencyContact(newContact);
+        setShowContactModal(false);
+        setSearchQuery("");
+        Alert.alert(
+          "Success",
+          `${newContact.name} has been added as an emergency contact`
+        );
+      } catch (error) {
+        Alert.alert("Error", "Failed to add emergency contact");
+      }
     } else {
       Alert.alert(
         "Limit Reached",
@@ -192,7 +212,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const addManualContact = () => {
+  const handleAddManualContact = async () => {
     if (!manualName.trim() || !manualPhone.trim()) {
       Alert.alert(
         "Missing Information",
@@ -202,7 +222,6 @@ const ProfileScreen = () => {
     }
 
     // Basic phone number validation
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
     const cleanPhone = manualPhone.replace(/\D/g, "");
 
     if (cleanPhone.length < 10) {
@@ -217,7 +236,7 @@ const ProfileScreen = () => {
     };
 
     // Check if contact is already added
-    const isAlreadyAdded = emergencyContacts.some(
+    const isAlreadyAdded = profile?.emergencyContacts.some(
       (existingContact) =>
         existingContact.phoneNumber === newContact.phoneNumber
     );
@@ -230,15 +249,19 @@ const ProfileScreen = () => {
       return;
     }
 
-    if (emergencyContacts.length < 3) {
-      setEmergencyContacts([...emergencyContacts, newContact]);
-      setShowManualModal(false);
-      setManualName("");
-      setManualPhone("");
-      Alert.alert(
-        "Success",
-        `${newContact.name} has been added as an emergency contact`
-      );
+    if ((profile?.emergencyContacts.length || 0) < 3) {
+      try {
+        await addEmergencyContact(newContact);
+        setShowManualModal(false);
+        setManualName("");
+        setManualPhone("");
+        Alert.alert(
+          "Success",
+          `${newContact.name} has been added as an emergency contact`
+        );
+      } catch (error) {
+        Alert.alert("Error", "Failed to add emergency contact");
+      }
     } else {
       Alert.alert(
         "Limit Reached",
@@ -247,7 +270,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const removeEmergencyContact = (id: string) => {
+  const handleRemoveEmergencyContact = (id: string) => {
     Alert.alert(
       "Remove Contact",
       "Are you sure you want to remove this emergency contact?",
@@ -256,14 +279,31 @@ const ProfileScreen = () => {
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => {
-            setEmergencyContacts(
-              emergencyContacts.filter((contact) => contact.id !== id)
-            );
+          onPress: async () => {
+            try {
+              await removeEmergencyContact(id);
+            } catch (error) {
+              Alert.alert("Error", "Failed to remove emergency contact");
+            }
           },
         },
       ]
     );
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await updateProfile({
+        name: name.trim(),
+        phone: phone.trim(),
+      });
+      Alert.alert("Success", "Profile saved successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const showPermissionHelp = () => {
@@ -308,7 +348,7 @@ const ProfileScreen = () => {
           <TouchableOpacity
             key={index}
             style={styles.phoneNumberItem}
-            onPress={() => addEmergencyContact(item, phoneNumber)}
+            onPress={() => handleAddEmergencyContact(item, phoneNumber)}
           >
             <Ionicons name="call" size={16} color="#6b7280" />
             <Text style={styles.phoneNumberText}>{phoneNumber}</Text>
@@ -318,6 +358,30 @@ const ProfileScreen = () => {
       </View>
     </View>
   );
+
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error loading profile: {profileError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => window.location.reload()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -400,7 +464,7 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {emergencyContacts.length === 0 ? (
+          {!profile?.emergencyContacts.length ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color="#d1d5db" />
               <Text style={styles.emptyStateText}>
@@ -412,7 +476,7 @@ const ProfileScreen = () => {
             </View>
           ) : (
             <View style={styles.contactsList}>
-              {emergencyContacts.map((contact, index) => (
+              {profile.emergencyContacts.map((contact, index) => (
                 <View key={contact.id} style={styles.contactCard}>
                   <View style={styles.contactCardHeader}>
                     <View style={styles.contactCardAvatar}>
@@ -429,7 +493,7 @@ const ProfileScreen = () => {
                     </View>
                     <TouchableOpacity
                       style={styles.removeButton}
-                      onPress={() => removeEmergencyContact(contact.id)}
+                      onPress={() => handleRemoveEmergencyContact(contact.id)}
                     >
                       <Ionicons name="close" size={16} color="#ef4444" />
                     </TouchableOpacity>
@@ -439,16 +503,24 @@ const ProfileScreen = () => {
             </View>
           )}
 
-          {emergencyContacts.length > 0 && emergencyContacts.length < 3 && (
+          {profile?.emergencyContacts.length > 0 && profile.emergencyContacts.length < 3 && (
             <Text style={styles.helperText}>
-              You can add {3 - emergencyContacts.length} more emergency contact
-              {3 - emergencyContacts.length !== 1 ? "s" : ""}
+              You can add {3 - profile.emergencyContacts.length} more emergency contact
+              {3 - profile.emergencyContacts.length !== 1 ? "s" : ""}
             </Text>
           )}
         </View>
 
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Profile</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+          onPress={handleSaveProfile}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save Profile</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
@@ -560,14 +632,13 @@ const ProfileScreen = () => {
 
             <TouchableOpacity
               style={[styles.saveButton, { marginTop: 24 }]}
-              onPress={addManualContact}
+              onPress={handleAddManualContact}
             >
               <Text style={styles.saveButtonText}>Add Emergency Contact</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
-      {/* </ScrollView> */}
     </SafeAreaView>
   );
 };
@@ -775,9 +846,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
+  saveButtonDisabled: {
+    backgroundColor: "#9ca3af",
+  },
   saveButtonText: {
     color: "white",
     fontSize: 18,
+    fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#6b7280",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    gap: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#ef4444",
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#3b82f6",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "white",
     fontWeight: "600",
   },
   // Modal Styles
