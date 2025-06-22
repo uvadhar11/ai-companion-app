@@ -1,9 +1,4 @@
-import { HelloWave } from "@/components/HelloWave";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { Image } from "expo-image";
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -21,15 +16,16 @@ import {
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
+import { router } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
 // You'll need to get this from Google Cloud Console
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-interface MapScreenProps {
-  onNavigateBack: () => void;
-}
+// interface MapScreenProps {
+//   onNavigateBack: () => void;
+// }
 
 interface RouteStep {
   instruction: string;
@@ -60,7 +56,7 @@ interface PlacePrediction {
   };
 }
 
-export default function MapScreen({ onNavigateBack }: MapScreenProps) {
+export default function MapScreen(/*{ onNavigateBack }: MapScreenProps*/) {
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -449,15 +445,16 @@ For development, you can also replace the API key directly in the code.
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
+        {/* <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <View style={{ width: 40 }} />
         <Text style={styles.headerTitle}>Navigation</Text>
         <TouchableOpacity
           onPress={getCurrentLocation}
           style={styles.refreshButton}
         >
-          <Text style={styles.refreshButtonText}>📍</Text>
+          <Text style={styles.refreshButtonText}>⟳</Text>
         </TouchableOpacity>
       </View>
 
@@ -611,11 +608,21 @@ For development, you can also replace the API key directly in the code.
             <View style={styles.routeActions}>
               <TouchableOpacity
                 style={styles.directionsButton}
-                onPress={() => setShowDirections(!showDirections)}
+                // onPress={() => setShowDirections(!showDirections)}
+                onPress={() =>
+                  router.push({
+                    pathname: "/directions",
+                    params: {
+                      routeInfo: JSON.stringify(routeInfo),
+                      routeMode,
+                    },
+                  })
+                }
               >
-                <Text style={styles.directionsButtonText}>
+                {/* <Text style={styles.directionsButtonText}>
                   {showDirections ? "Hide" : "Show"} Steps
-                </Text>
+                </Text> */}
+                <Text style={styles.directionsButtonText}>Show Steps</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.clearButton} onPress={clearRoute}>
                 <Text style={styles.clearButtonText}>Clear</Text>
@@ -667,6 +674,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
+    position: "relative", // Add this
   },
   backButton: {
     padding: 5,
@@ -680,12 +688,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#1f2937",
+    position: "absolute", // Add this
+    left: 0,
+    right: 0,
+    textAlign: "center",
   },
   refreshButton: {
     padding: 5,
   },
   refreshButtonText: {
-    fontSize: 18,
+    fontSize: 32,
   },
   searchContainer: {
     flexDirection: "row",
